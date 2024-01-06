@@ -95,34 +95,20 @@ class EIPUVariants(AnalyticAcquisitionFunction):
         cat_stages = None
         for i, cost_model in enumerate(self.cost_gp):
             if i < delta:
-                cost_samples = torch.full((self.params['cost_samples'], X.shape[0]), self.params['epsilon'], device=DEVICE) # generate a tensor of epsilons
+                cost_samples = torch.full((self.params['cost_samples'], X.shape[0]), self.params['epsilon'], device=DEVICE) 
                 reshaped_samples = cost_samples[:,:,None]
+                if cat_stages is not None:
+                    print(f"DURING MEMOIZATION, FOR STAGE {i+1}, Currently have {cat_stages.shape}, and received {cost_samples.shape} from function")
                 cat_stages = reshaped_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, reshaped_samples], axis=2)
             else:
                 hyp_indexes = self.params['h_ind'][i]
-                if self.acq_type == 'EEIPU':
-                    cost_posterior = cost_model.posterior(X[:,:,hyp_indexes])
+                if self.acq_type in ['EEIPU', 'MS_CArBO']:
+                    cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, self.bounds['c'][:,i])
                 else:
-                    cost_posterior = cost_model.posterior(X)
-                cost_samples = self.cost_sampler(cost_posterior)
-                cost_samples = cost_samples.to(DEVICE)
-                cost_samples = cost_samples.max(dim=2)[0]
-
-                cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,i])
-                cost_samples = torch.exp(cost_samples)
-
-                cost_samples = self.acq_obj(cost_samples)
-
-                reshaped_samples = cost_samples[:,:,None]
-                reshaped_samples = reshaped_samples.to(DEVICE)
-                # reshaped_samples = torch.log(reshaped_samples)
-                # reshaped_samples = self.cost_normalizer(reshaped_samples, self.params)
-                cat_stages = reshaped_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, reshaped_samples], axis=2)
-        
-        n_mem, n_stages = delta, cat_stages.shape[2]
-        # norm_stages = self.cost_normalizer(cat_stages[:,:,n_mem:n_stages], self.params)
-
-        # cat_stages = torch.cat([cat_stages[:,:,:n_mem],  norm_stages], axis=-1).to(DEVICE)
+                    cost_samples = self.get_mc_samples(X, cost_model, self.bounds['c'][:,i]) # REVISIT THIS YOU MORON
+            if cat_stages is not None:
+                print(f" Currently have {cat_stages.shape}, and received {cost_samples.shape} from function")
+            cat_stages = cost_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, cost_samples], axis=2)
         
         cat_stages = cat_stages.sum(dim=-1)
         

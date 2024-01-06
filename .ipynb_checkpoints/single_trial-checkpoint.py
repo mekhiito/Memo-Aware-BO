@@ -247,11 +247,6 @@ def lambo_trial(trial_number, acqf, wandb, params=None):
         
         invalid_partitions = np.where(partitions < prob_thres)
 
-        leaf_partitions = root.get_leaf_partitions()
-
-        for invalid_leaf_idx in invalid_partitions:
-            
-
         
 
 

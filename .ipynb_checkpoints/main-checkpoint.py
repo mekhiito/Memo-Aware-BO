@@ -20,7 +20,7 @@ def arguments():
     parser.add_argument("--warmup-eta", type=float, help="Warm up", default=1e-2)
     parser.add_argument("--trial-num", type=int, help="Trial number")
     parser.add_argument("--exp-group", type=str, help="Group ID")
-    parser.add_argument("--acqf", type=str, help="Acquisition function", choices=["EEIPU", "EIPU", "EIPU-MEMO", "EI", "RAND", 'CArBO', 'EIPS', 'MS_CArBO'])
+    parser.add_argument("--acqf", type=str, help="Acquisition function", choices=["EEIPU", "EIPU", "EIPU-MEMO", "EI", "RAND", 'CArBO', 'EIPS', 'MSBO'])
     
     params:dict = read_json("params")
     
