@@ -142,62 +142,62 @@ def bo_trial(trial_number, acqf, wandb, params=None):
     return
 
 
+
 def lambo_trial(trial_number, acqf, wandb, params=None):
     
     chosen_functions, h_ind, total_budget = params['obj_funcs'], params['h_ind'], params['total_budget']
     
     input_bounds = get_gen_bounds(h_ind, bound_list, funcs=chosen_functions)
 
-    partitions = []
     n_stages = len(h_ind)
-    
-    for i in range(n_stages-1):
-        stage_partition = []
-        for stage_idx in h_ind[i]:
-            lo, hi = input_bounds[0][stage_idx], input_bounds[1][stage_idx]
-            mid = (lo + hi) / 2.0
-            p = [[lo, mid], [mid, hi]]
-            stage_partition.append(p)
-        partitions.append(stage_partition)
-
-    last_stage_partition = []
-    for stage_idx in h_ind[-1]:
-        lo, hi = input_bounds[0][stage_idx], input_bounds[1][stage_idx]
-        p = [lo, hi]
-        last_stage_partition.append(p)
-
-    depths = [ 1 for i in range(n_stages - 1) ]
-    
-    params['partitions'] = partitions
-    params['depths'] = depths
-
-    root = Node(None, 0)
-    mset = MSET(partitions, depths, last_stage_partition)
-    
-    for p_i in range(len(partitions[0])):
-        child = tree_const.ConstructMSET(root, 0, p_i, [[], []])
-        root.add_child(child)
-    mset = MSET.ConstructMSET(partitions, params['depths'])
-    K = mset.leaves
-    n_leaves = len(K)
-
-    arm_idx = random.randint(n_leaves)
-    first_arm = K[arm_idx]
-    arm_choices = [i for i in range(n_leaves)]
+    n_leaves = 2**(n_stages-1)
     
     unif_prob = 1.0/n_leaves
-    prob_thres = 0.1/n_leaves
-    probs = np.array([unif_prob for i in n_leaves])
+    probs = np.array([unif_prob for i in range(n_leaves)])
 
-    params['K'] = K
-    params['P'] = probs
-    params['H'] = sum(depths)
-    h0 = params['H'] + 0
+    depths = [ 1 for i in range(n_stages - 1) ]
 
-    sigma = random.choice([-1, 1], k=params['H'])
-
-    arm = first_arm
     for iter in iters:
+    
+        partitions = []
+        for i in range(n_stages-1):
+            stage_partition = []
+            for stage_idx in h_ind[i]:
+                lo, hi = input_bounds[0][stage_idx], input_bounds[1][stage_idx]
+                mid = (lo + hi) / 2.0
+                p = [[lo, mid], [mid, hi]]
+                stage_partition.append(p)
+            partitions.append(stage_partition)
+    
+        last_stage_partition = []
+        for stage_idx in h_ind[-1]:
+            lo, hi = input_bounds[0][stage_idx], input_bounds[1][stage_idx]
+            p = [lo, hi]
+            last_stage_partition.append(p)
+        
+        params['partitions'] = partitions
+        params['depths'] = depths
+    
+        root = Node(None, 0)
+        mset = MSET(partitions, depths, last_stage_partition)
+        
+        for p_i in range(len(partitions[0])):
+            child = tree_const.ConstructMSET(root, 0, p_i, [[], []])
+            root.add_child(child)
+            
+        mset = MSET.ConstructMSET(partitions, params['depths'])
+        K = mset.leaves
+    
+        arm_idx = random.randint(n_leaves)
+        arm = K[arm_idx]
+        arm_choices = [i for i in range(n_leaves)]
+        
+        prob_thres = 0.1/n_leaves
+    
+        params['K'] = K
+        params['P'] = probs
+        params['H'] = sum(depths)
+        h0 = params['H'] + 0
         
         # Set arm dataset
         # Call bo_iteration
@@ -233,7 +233,7 @@ def lambo_trial(trial_number, acqf, wandb, params=None):
             loss_i = np.log( nominator / denominator )**(-1/eta)
             loss[arm_idx][h] = sigma[h] * loss_i
 
-        # Updating the probability associated witg the selected arm
+        # Updating the probability associated with the selected arm
 
         nominator = probs[arm_idx] * np.exp(-eta*loss[arm_idx,:].sum())
         denominator = 0
@@ -244,15 +244,18 @@ def lambo_trial(trial_number, acqf, wandb, params=None):
         
         arm_idx = random.choices(arm_choices, weights=probs)[0]
 
-        
-        invalid_partitions = np.where(partitions < prob_thres)
+        invalid_partitions = np.where(probs < prob_thres)[0]
 
         leaf_partitions = root.get_leaf_partitions()
-
-        for invalid_leaf_idx in invalid_partitions:
-            
-
         
+        if invalid_partitions.shape[0] > 0:
+            invalid_arm = invalid_partitions[0]
+            for i in range(n_stages-1):
+                for stage_idx in h_ind[i]:
+                    if invalid_arm[i] == 0:
+                        input_bounds[stage_idx][0] = (input_bounds[stage_idx][0] + input_bounds[stage_idx][1]) / 2.0
+                    else:
+                        input_bounds[stage_idx][1] = (input_bounds[stage_idx][0] + input_bounds[stage_idx][1]) / 2.0
 
 
 
