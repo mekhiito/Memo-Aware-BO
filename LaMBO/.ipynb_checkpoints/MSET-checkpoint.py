@@ -43,42 +43,61 @@ class MSET:
         self.leaves = []
         self.leaf_partitions = []
 
+    def update_bounds(self, curr_stage_partitions, p_bounds, p_idx):
+        bounds = copy.deepcopy(p_bounds)
+        curr_partition = []
+
+        for hp_partitions in curr_stage_partitions:
+            curr_partition.append(hp_partitions[p_idx])
+
+        for ps in curr_partition:
+            bounds[0].append(ps[0])
+            bounds[1].append(ps[1])
+
+        return bounds
+
+    def create_leaf(self, node, leaf_partition, bounds):
+        for ps in self.last_stage_bounds:
+            bounds[0].append(ps[0])
+            bounds[1].append(ps[1])
+        # bounds = torch.tensor(bounds, device=DEVICE, dtype=torch.double)
+        node.add_value(bounds)
+        node.add_leaf_partition(leaf_partition)
+        
+        self.leaves.append(bounds)
+        self.leaf_partitions.append(leaf_partition)
+        
+        return node
+
+    def build_children(self, node, stage_idx, node_idx, leaf_partition, bounds):
+        
+        left_range, right_range = 1e9, -1e9
+        
+        left = self.ConstructMSET(node, stage_idx + 1, 0, 2*node_idx + 1, leaf_partition, bounds)
+        right = self.ConstructMSET(node, stage_idx + 1, 1, 2*node_idx + 2, leaf_partition, bounds)
+        node.add_child(left, right)
+
+        return node
+
     def ConstructMSET(self, parent, stage_idx, p_idx, node_idx, leaf_partitions=None, p_bounds=None):
 
-        bounds = copy.deepcopy(p_bounds)
         leaf_partition = copy.deepcopy(leaf_partitions)
 
         curr_stage_partitions = self.partitions[stage_idx]
 
         leaf_partition.append(p_idx)
         
-        curr_partition = []
-
-        for hp_partitions in curr_stage_partitions:
-            curr_partition.append(hp_partitions[p_idx])
+        bounds = self.update_bounds(curr_stage_partitions, p_bounds, p_idx)
         
         curr_depth = parent.get_depth() + self.depths[stage_idx]
 
-        for ps in curr_partition:
-            bounds[0].append(ps[0])
-            bounds[1].append(ps[1])
-
         node = Node(parent, curr_depth, node_idx)
-        left_range, right_range = 1e9, -1e9
-        if stage_idx < len(self.depths)-1:
-            left = self.ConstructMSET(node, stage_idx + 1, 0, 2*node_idx + 1, leaf_partition, bounds)
-            right = self.ConstructMSET(node, stage_idx + 1, 1, 2*node_idx + 2, leaf_partition, bounds)
-            node.add_child(left, right)
-        else:
-            # Maybe here we can add the bounds of the last stage? As shown in the following line
-            for ps in self.last_stage_bounds:
-                bounds[0].append(ps[0])
-                bounds[1].append(ps[1])
-            # bounds = torch.tensor(bounds, device=DEVICE, dtype=torch.double)
-            node.add_value(bounds)
-            node.add_leaf_partition(leaf_partition)
-            self.leaves.append(bounds)
-            self.leaf_partitions.append(leaf_partition)
+
+        if stage_idx >= len(self.depths) - 1:
+            node = self.create_leaf(node, leaf_partition, bounds)
+            return node
+
+        node = self.build_children(node, stage_idx, node_idx, leaf_partition, bounds)
 
         return node
 
@@ -109,7 +128,7 @@ class MSET:
     def print_MSET(self, node):
         
         if node.left is not None:
-            print(node.leaf_ranges)
+            print(node.idx, ' ', node.leaf_ranges)
             self.print_MSET(node.left)
             self.print_MSET(node.right)
         else:
@@ -178,6 +197,8 @@ def MSET_Test():
         last_stage_partition.append(p)
 
     depths = [ 1 for i in range(n_stages - 1) ]
+
+    # print(partitions)
     
     root = Node(None, 0, 0)
     tree_const = MSET(partitions, depths, last_stage_partition)
