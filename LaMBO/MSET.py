@@ -109,12 +109,14 @@ class MSET:
     def print_MSET(self, node):
         
         if node.left is not None:
+            print(node.leaf_ranges)
             self.print_MSET(node.left)
             self.print_MSET(node.right)
         else:
             print(node.idx)
             print(node.value)
             print(node.leaf_partitions)
+            print(node.leaf_ranges)
             print()
         
 def Loss_Test(root):

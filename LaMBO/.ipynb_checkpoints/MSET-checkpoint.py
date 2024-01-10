@@ -109,12 +109,14 @@ class MSET:
     def print_MSET(self, node):
         
         if node.left is not None:
+            print(node.leaf_ranges)
             self.print_MSET(node.left)
             self.print_MSET(node.right)
         else:
             print(node.idx)
             print(node.value)
             print(node.leaf_partitions)
+            print(node.leaf_ranges)
             print()
         
 def Loss_Test(root):
@@ -131,7 +133,7 @@ def Loss_Test(root):
             node = node.left
         elif node.right.leaf_ranges[0] <= arm_idx <= node.right.leaf_ranges[1]:
             node = node.right
-    
+        
         nominator = 0
         for leaf_idx in range(node.leaf_ranges[0], node.leaf_ranges[1]):
             nominator += (probs[leaf_idx] * np.exp(-eta * (1 + sigma[h-1]) * loss[leaf_idx][h-1]))
