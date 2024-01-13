@@ -207,40 +207,11 @@ class LaMBO:
             C_inv[arm_idx] = torch.cat([C_inv[arm_idx], inv_cost])
             
             best_f = max(best_f, new_y.item())
-            for stage in range(n_memoised):
-                new_c[:,stage] = torch.tensor([params['epsilon']])
     
             sum_stages = new_c.sum().item()        
             cum_cost += sum_stages
 
-            log = dict(
-                acqf=acqf,
-                trial=trial_number,
-                iteration=iteration,
-                best_f=best_f,
-                sum_c_x=sum_stages,
-                cum_costs=cum_cost,
-            )
-    
-            iteration += 1
-    
-            dir_name = f"syn_logs_"
-            csv_file_name = f"{dir_name}/{acqf}_trial_{trial_number}.csv"
-
-            try:
-                with open(csv_file_name, 'r') as csvfile:
-                    reader = csv.reader(csvfile)
-                    fieldnames = next(reader)
-    
-            except FileNotFoundError:
-                fieldnames = ['acqf', 'trial', 'iteration', 'best_f', 'sum_c_x', 'cum_costs']
-                with open(csv_file_name, 'w', newline='') as csvfile:
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writeheader()
-    
-            with open(csv_file_name, 'a', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writerow(log)
+            iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
             
             # wandb.log(log)
     

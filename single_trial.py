@@ -9,22 +9,7 @@ import csv
 from typing import Iterable
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def get_initial_data(n, bounds=None, seed=0, acqf=None, params=None):
-
-    X = generate_input_data(N=n, bounds=bounds, seed=seed, acqf=acqf, params=params)
-    y = F(X, params).unsqueeze(-1)
-    c = Cost_F(X, params)
-
-    if acqf not in ['EEIPU', 'MS_CArBO']:
-        c = c.sum(dim=1)
-
-    c_inv = 1/c.sum(dim=1)
-    c_inv = c_inv.to(DEVICE)
-    c_inv = c_inv.unsqueeze(-1)
-    
-    return X, y, c, c_inv
-
-def bo_trial(trial_number, acqf, wandb, params=None):
+def bo_trial(trial_number, acqf, iter_function, wandb, params=None):
 
     trial_logs = read_json('logs')
     bound_list = read_json('bounds')
@@ -43,7 +28,7 @@ def bo_trial(trial_number, acqf, wandb, params=None):
     while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
-        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
         
         new_y = F(new_x, params).unsqueeze(-1)
         new_c = Cost_F(new_x, params)
@@ -66,41 +51,14 @@ def bo_trial(trial_number, acqf, wandb, params=None):
         # stage_cost_list = new_c.tolist()
         sum_stages = new_c.sum().item()        
         cum_cost += sum_stages
-        
-        log = dict(
-            acqf=acqf,
-            trial=trial_number,
-            iteration=iteration,
-            best_f=best_f,
-            sum_c_x=sum_stages,
-            cum_costs=cum_cost,
-        )
 
         iteration += 1
-
-        dir_name = f"syn_logs_"
-        csv_file_name = f"{dir_name}/{acqf}_trial_{trial_number}.csv"
-        # Check if the file exists
-        try:
-            with open(csv_file_name, 'r') as csvfile:
-                reader = csv.reader(csvfile)
-                fieldnames = next(reader)  # Read the headers in the first row
-
-        except FileNotFoundError:
-            # If file does not exist, create it and write headers
-            fieldnames = ['acqf', 'trial', 'iteration', 'best_f', 'sum_c_x', 'cum_costs']
-            with open(csv_file_name, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-
-        # Append data
-        with open(csv_file_name, 'a', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow(log)
         
         # wandb.log(log)
 
         best_fs.append(best_f)
+
+        iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
 
         
     return

@@ -6,6 +6,35 @@ from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 import torch
 
+def iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost):
+    
+    log = dict(
+        acqf=acqf,
+        trial=trial_number,
+        iteration=iteration,
+        best_f=best_f,
+        sum_c_x=sum_stages,
+        cum_costs=cum_cost,
+    )
+
+    dir_name = f"syn_logs_"
+    csv_file_name = f"{dir_name}/{acqf}_trial_{trial_number}.csv"
+
+    try:
+        with open(csv_file_name, 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            fieldnames = next(reader)
+
+    except FileNotFoundError:
+        fieldnames = ['acqf', 'trial', 'iteration', 'best_f', 'sum_c_x', 'cum_costs']
+        with open(csv_file_name, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+    with open(csv_file_name, 'a', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow(log)
+
 def get_gp_models(X, y, iter, params=None):
 
     mll, gp_model = initialize_GP_model(X, y, params=params)
@@ -22,12 +51,6 @@ def get_inv_cost_models(X, C_inv, iter, param_idx, bounds, acqf):
     cost_mll, cost_gp = get_gp_models(X, norm_inv_cost, iter)
     
     return cost_mll, cost_gp
-
-def assert_positive_costs(cost):
-    try:
-        assert cost.min() > 0
-    except:
-        print(f"Negative costs detected")
 
 def get_multistage_cost_models(X, C, iter, param_idx, bounds, acqf):
 

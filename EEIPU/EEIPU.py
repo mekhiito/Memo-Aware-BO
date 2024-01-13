@@ -209,10 +209,6 @@ class EEIPU(AnalyticAcquisitionFunction):
 
         cost_cool = remaining / init_budget
      
-        if self.acq_type in ['EEIPU', 'CArBO', 'EIPS', 'MS_CArBO']:
-            inv_cost =  self.compute_expected_inverse_cost(X, delta=delta)
+        inv_cost =  self.compute_expected_inverse_cost(X, delta=delta)
 
-            return ei * (inv_cost**cost_cool) if self.acq_type != 'EIPS' else ei * inv_cost
-       
-        else:
-            raise Exception("ERROR: Only EEIPU, CArBO, MS_CArBO, and EIPS are supported!")
+        return ei * (inv_cost**cost_cool)

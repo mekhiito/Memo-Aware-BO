@@ -44,6 +44,21 @@ def unstandardize(data, bounds=None):
     mean, std = bounds[0].item(), bounds[1].item()
     data_ = (data_ * std) + mean
     return data_ 
+
+def get_initial_data(n, bounds=None, seed=0, acqf=None, params=None):
+
+    X = generate_input_data(N=n, bounds=bounds, seed=seed, acqf=acqf, params=params)
+    y = F(X, params).unsqueeze(-1)
+    c = Cost_F(X, params)
+
+    if acqf not in ['EEIPU', 'MS_CArBO']:
+        c = c.sum(dim=1)
+
+    c_inv = 1/c.sum(dim=1)
+    c_inv = c_inv.to(DEVICE)
+    c_inv = c_inv.unsqueeze(-1)
+    
+    return X, y, c, c_inv
     
 def get_gen_bounds(param_idx, func_bounds, funcs=None, bound_type=''):
     lo_bounds, hi_bounds = [], []

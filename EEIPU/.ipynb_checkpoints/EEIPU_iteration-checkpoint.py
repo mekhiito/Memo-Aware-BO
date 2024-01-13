@@ -1,6 +1,6 @@
 from EEIPU import EEIPU
 
-def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def EEIPU_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
     
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])
@@ -22,7 +22,9 @@ def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
                         unnormalizer=unnormalize, bounds=bounds, eta=decay,
                         consumed_budget=consumed_budget, iter=iter, params=params)
     
-    new_x, n_memoised, acq_value = optimize_acqf_by_mem(acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, iter=iter, prefix_pool=prefix_pool, params=params, seed=params['rand_seed'])
+    new_x, n_memoised, acq_value = optimize_acqf_by_mem(
+        acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, 
+        iter=iter, prefix_pool=prefix_pool, params=params, seed=params['rand_seed'])
     
     E_c, E_inv_c, E_y = [0], torch.tensor([0]), 0
     E_c = acqf.compute_expected_cost(new_x)
