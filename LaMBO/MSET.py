@@ -128,7 +128,7 @@ class MSET:
     def print_MSET(self, node):
         
         if node.left is not None:
-            print(node.idx, ' ', node.leaf_ranges)
+            # print(node.idx, ' ', node.leaf_ranges)
             self.print_MSET(node.left)
             self.print_MSET(node.right)
         else:
@@ -136,7 +136,7 @@ class MSET:
             print(node.value)
             print(node.leaf_partitions)
             print(node.leaf_ranges)
-            print()
+            print('\n\n')
         
 def Loss_Test(root):
     node = copy.deepcopy(root)
@@ -169,7 +169,7 @@ def Loss_Test(root):
         denominator += probs[leaf_idx] * np.exp(-eta*loss[leaf_idx,:].sum())
     
     arm_choices = [i for i in range(8)]
-    print(random.choices(arm_choices, probs)[0])
+    print('Loss Test: ', random.choices(arm_choices, probs)[0])
 
 def MSET_Test():
     n_stages = 3
@@ -178,37 +178,59 @@ def MSET_Test():
     input_bounds = [[0,0,0,0,0,0,0,0,0,0,0], [1,1,1,1,1,1,1,1,1,1,1]]
     
 
-    partitions = []
-    n_stages = len(h_ind)
+    for dd in range(2):
+        print('Global Bounds this iteration are: ')
+        print(input_bounds)
+        partitions = []
+        n_stages = len(h_ind)
+        n_leaves = 2**(n_stages-1)
+        
+        for i in range(n_stages-1):
+            stage_partition = []
+            for stage_idx in h_ind[i]:
+                lo, hi = input_bounds[0][stage_idx], input_bounds[1][stage_idx]
+                mid = (lo + hi) / 2.0
+                p = [[lo, mid], [mid, hi]]
+                stage_partition.append(p)
+            partitions.append(stage_partition)
     
-    for i in range(n_stages-1):
-        stage_partition = []
-        for stage_idx in h_ind[i]:
+        last_stage_partition = []
+        for stage_idx in h_ind[-1]:
             lo, hi = input_bounds[0][stage_idx], input_bounds[1][stage_idx]
-            mid = (lo + hi) / 2.0
-            p = [[lo, mid], [mid, hi]]
-            stage_partition.append(p)
-        partitions.append(stage_partition)
-
-    last_stage_partition = []
-    for stage_idx in h_ind[-1]:
-        lo, hi = input_bounds[0][stage_idx], input_bounds[1][stage_idx]
-        p = [lo, hi]
-        last_stage_partition.append(p)
-
-    depths = [ 1 for i in range(n_stages - 1) ]
-
-    # print(partitions)
+            p = [lo, hi]
+            last_stage_partition.append(p)
     
-    root = Node(None, 0, 0)
-    tree_const = MSET(partitions, depths, last_stage_partition)
+        depths = [ 1 for i in range(n_stages - 1) ]
+        
+        root = Node(None, 0, 0)
+        tree_const = MSET(partitions, depths, last_stage_partition)
+    
+        left = tree_const.ConstructMSET(root, 0, 0, 1, [], [[], []])
+        right = tree_const.ConstructMSET(root, 0, 1, 2, [], [[], []])
+        root.add_child(left, right)
 
-    left = tree_const.ConstructMSET(root, 0, 0, 1, [], [[], []])
-    right = tree_const.ConstructMSET(root, 0, 1, 2, [], [[], []])
-    root.add_child(left, right)
+        print('Printing Tree Now')
+        tree_const.assign_leaf_ranges(root)
+        tree_const.print_MSET(root)
 
-    tree_const.assign_leaf_ranges(root)
-    tree_const.print_MSET(root)
+        probs = np.array([0.000000001, 0.5, 0.4, 0.01, 0.1, 0.2, 0.15, 0.44])
+
+        prob_thres = 0.1/n_leaves
+                                                        
+        invalid_partitions = np.where(probs < prob_thres)[0]
+        
+        print('Invalid Partitions: ', invalid_partitions)
+        if invalid_partitions.shape[0] > 0:
+            
+            invalid_partition = tree_const.leaf_partitions[0]
+            print('Invalid Partition: ', invalid_partition)
+            
+            for i in range(n_stages-1):
+                for stage_idx in h_ind[i]:
+                    if invalid_partition[i] == 0:
+                        input_bounds[0][stage_idx] = (input_bounds[0][stage_idx] + input_bounds[1][stage_idx]) / 2.0
+                    else:
+                        input_bounds[1][stage_idx] = (input_bounds[0][stage_idx] + input_bounds[1][stage_idx]) / 2.0
 
     Loss_Test(root)
 

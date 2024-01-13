@@ -1,13 +1,12 @@
 from optimize_mem_acqf import optimize_acqf_by_mem
-from EEIPU.EIPUVariants import EIPUVariants
 from functions import normalize, unnormalize, standardize, unstandardize, initialize_GP_model, get_gen_bounds, generate_prefix_pool
 from botorch import fit_gpytorch_model
-from botorch.acquisition import ExpectedImprovement
+
 from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 import torch
 
-def get_gp_models(X, y, iter, params=None, type_='y'):
+def get_gp_models(X, y, iter, params=None):
 
     mll, gp_model = initialize_GP_model(X, y, params=params)
     fit_gpytorch_model(mll)
@@ -20,46 +19,50 @@ def get_inv_cost_models(X, C_inv, iter, param_idx, bounds, acqf):
     log_sc = torch.log(C_inv)
     norm_inv_cost = standardize(log_sc, bounds['1/c'])
 
-    cost_mll, cost_gp = get_gp_models(X, norm_inv_cost, iter, type_='c')
+    cost_mll, cost_gp = get_gp_models(X, norm_inv_cost, iter)
     
     return cost_mll, cost_gp
-    
 
-def get_cost_models(X, C, iter, param_idx, bounds, acqf):
+def assert_positive_costs(cost):
+    try:
+        assert cost.min() > 0
+    except:
+        print(f"Negative costs detected")
 
-    if acqf not in ['EEIPU', 'MS_CArBO']:
-        log_sc = torch.log(C)
-        
-        norm_cost = standardize(log_sc, bounds['c'][:,i])
-        
-        x = X + 0
-
-        cost_mll, cost_gp = get_gp_models(x, norm_cost, iter, type_='c')
-
-        return [cost_mll], [cost_gp]
+def get_multistage_cost_models(X, C, iter, param_idx, bounds, acqf):
 
     cost_mll, cost_gp = [], []
     for i in range(C.shape[1]):
         stage_cost = C[:,i].unsqueeze(-1)
-        try:
-            assert stage_cost.min() > 0
-        except:
-            print(f"BEFORE LOGGING THE COSTS, EXCEPTION RAISED BECAUSE THE MINIMUM DATAPOINT IS = {stage_cost.min().item()}, MAXIMUM FOR SOME REASON IS = {stage_cost.max().item()}, SHAPE IS = {stage_cost.shape}, AND NUMBER OF NANS IS {torch.isnan(stage_cost.view(-1)).sum().item()}")
+
+        assert_positive_costs(stage_cost)
     
         log_sc = torch.log(stage_cost)
         
         norm_stage_cost = standardize(log_sc, bounds['c'][:,i])
         stage_idx = param_idx[i]
-        if acqf == 'EEIPU' or acqf == 'MS_CArBO':
-            stage_x = X[:, stage_idx] + 0
-        else:
-            stage_x = X + 0
+        stage_x = X[:, stage_idx] + 0
 
-        stage_mll, stage_gp = get_gp_models(stage_x, norm_stage_cost, iter, type_='c')
+        stage_mll, stage_gp = get_gp_models(stage_x, norm_stage_cost, iter)
         
         cost_mll.append(stage_mll)
         cost_gp.append(stage_gp)
     return cost_mll, cost_gp
+
+def get_cost_model(X, C, iter, param_idx, bounds, acqf):
+
+    assert_positive_costs(C)
+    
+    log_sc = torch.log(C)
+    
+    norm_cost = standardize(log_sc, bounds['c'][:,0])
+    
+    x = X + 0
+
+    cost_mll, cost_gp = get_gp_models(x, norm_cost, iter)
+
+    return [cost_mll], [cost_gp]
+    
     
 def get_expected_y(X, gp_model, n_samples, bounds, seed):
     sampler = SobolQMCNormalSampler(sample_shape=n_samples, seed=seed)
@@ -106,7 +109,7 @@ def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
                             unnormalizer=unnormalize, bounds=bounds, eta=decay,
                             consumed_budget=consumed_budget, iter=iter, params=params)
     
-    new_x, n_memoised = optimize_acqf_by_mem(acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, iter=iter, prefix_pool=prefix_pool, params=params, seed=params['rand_seed'])
+    new_x, n_memoised, acq_value = optimize_acqf_by_mem(acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, iter=iter, prefix_pool=prefix_pool, params=params, seed=params['rand_seed'])
     
     E_c, E_inv_c, E_y = [0], torch.tensor([0]), 0
     if acqf_str in ['EEIPU', 'CArBO', 'EIPS', 'MS_CArBO']:
@@ -118,4 +121,4 @@ def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
         new_x = unnormalize(new_x, bounds=bounds['x_cube'])
     
     
-    return new_x, n_memoised, E_c, E_inv_c, E_y
+    return new_x, n_memoised, E_c, E_inv_c, E_y, acq_value

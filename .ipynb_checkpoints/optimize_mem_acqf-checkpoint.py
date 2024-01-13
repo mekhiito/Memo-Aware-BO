@@ -27,5 +27,5 @@ def optimize_acqf_by_mem(acqf=None, acqf_str=None, bounds=None, iter=None, param
             
         best_candidate, best_acqf_val, n_memoised = update_candidate(new_candidate, acqf_val.item(), best_candidate, best_acqf_val, n_memoised, pref_stages)
     
-    return best_candidate, n_memoised
+    return best_candidate, n_memoised, best_acqf_val
         

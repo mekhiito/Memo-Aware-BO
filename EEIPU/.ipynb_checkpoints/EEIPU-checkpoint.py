@@ -10,7 +10,7 @@ import torch
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class EIPUVariants(AnalyticAcquisitionFunction):
+class EEIPU(AnalyticAcquisitionFunction):
     r"""Modification of Standard Expected Improvement Class defined in BoTorch
     See: https://botorch.org/api/_modules/botorch/acquisition/analytic.html#ExpectedImprovement
     """

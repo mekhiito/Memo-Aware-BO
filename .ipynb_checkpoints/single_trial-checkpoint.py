@@ -45,17 +45,12 @@ def bo_trial(trial_number, acqf, wandb, params=None):
     
     chosen_functions, h_ind, total_budget = params['obj_funcs'], params['h_ind'], params['total_budget']
 
-
-    # FROM HERE
-    if acqf != 'LaMBO':
-        input_bounds = get_gen_bounds(h_ind, bound_list, funcs=chosen_functions)
-        # else: build the tree and choose an arm
+    input_bounds = get_gen_bounds(h_ind, bound_list, funcs=chosen_functions)
     
     X, Y, C = get_initial_data(params['n_init_data'], bounds=input_bounds, seed=trial_number*10000, acqf=acqf, params=params)
     C_inv = 1/C.sum(dim=1)
     C_inv = C_inv.to(DEVICE)
     C_inv = C_inv.unsqueeze(-1)
-    # TO HERE SHOULD BE IN A LOOP TO GENERATE SEPARATE DATA PER LEAF
 
     
     print(f'{acqf}\tTrial {trial_number}\t{X.shape[0]}')
@@ -68,15 +63,9 @@ def bo_trial(trial_number, acqf, wandb, params=None):
     iteration = 0
     
     while cum_cost < total_budget:
-
-        if acqf == 'LaMBO':
         
-            bounds, acq_value = get_dataset_bounds(X[arm_idx], Y[arm_idx], C[arm_idx], C_inv[arm_idx], arm.value)
-
-            new_x, n_memoised, E_c, E_inv_c, y_pred = bo_iteration(X[arm_idx], Y[arm_idx], C[arm_idx], C_inv[arm_idx], bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
-        else:
-            bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
-            new_x, n_memoised, E_c, E_inv_c, y_pred = bo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
+        bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
+        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
         
         new_x = new_x.to(DEVICE)
         new_y = F(new_x, params).unsqueeze(-1)

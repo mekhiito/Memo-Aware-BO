@@ -10,38 +10,6 @@ from botorch.test_functions import Beale, Branin, Hartmann, EggHolder, Styblinsk
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# def custom_F1(X: torch.Tensor) -> torch.Tensor:
-#     f = 0.9*X[:,0]**3 - 3.03
-#     return f.to(DEVICE)
-
-# def custom_F2(X: torch.Tensor) -> torch.Tensor:
-#     f = 3*torch.log(X[:,0]**4) + 5
-#     return f.to(DEVICE)
-
-def C1(x, ctype=1):
-    cost = x[:,0]**2 + 2*x[:,1]**3 + 3*x[:,2]**2 + 1 # strictly positive under bounds [0,10]
-    return cost.to(DEVICE)
-
-def C2(x, ctype=1):
-    cost = 2*x[:,0]**2 + 3*x[:,1]**3 + x[:,2]**2 + 1 # strictly positive under bounds [0,10]
-    return cost.to(DEVICE)
-
-def C3(x, ctype=1):
-    cost = 3*x[:,0]**2 + x[:,1]**3 + 2*x[:,2]**2 + 1 # strictly positive under bounds [0,10]
-    return cost.to(DEVICE)
-
-def custom1(x):
-    c1 = C1(x)
-    return torch.exp(c1/(x[:,0]+x[:,1]+x[:,2]+1)) # Avoiding division by zero
-
-def custom2(x):
-    c2 = C2(x)
-    return torch.exp(c2/(x[:,0]+x[:,1]+x[:,2]+1)) # Avoiding division by zero
-
-def custom3(x):
-    c3 = C3(x)
-    return 20*torch.log(c3+10) # log1p function is safer as it handles log(0) situation
-
 SYNTHETIC_FUNCTIONS = {
     # Stage 1
     'branin2': Branin(negate=True, bounds=[[0,10], [0,10]]),
@@ -57,19 +25,8 @@ SYNTHETIC_FUNCTIONS = {
     # Stage 3
     'rosenbrock2': Rosenbrock(negate=True),
     'levy2': Levy(negate=True),
-    'holdertable2': HolderTable(negate=True),
-
-    # Custom
-    'custom1': custom1,
-    'custom2': custom2,
-    'custom3': custom3
+    'holdertable2': HolderTable(negate=True)
 }
-# KERNELS = {
-#     'rbf': RBFKernel(ard_num_dims=7).to(DEVICE),
-#     'rqk': RQKernel(ard_num_dims=7).to(DEVICE),
-#     'matern': MaternKernel(ard_num_dims=7).to(DEVICE),
-#     'periodic': PeriodicKernel(ard_num_dims=7).to(DEVICE)
-# }
 
 def normalize(data, bounds=None):
     data_ = data + 0
@@ -132,51 +89,6 @@ def poly(x, params): # polynomial function
     nomial = x**params['power']
     return nomial 
 
-def bran(X):
-    t1 = (X[:, 1] - 5.1 / (4 * torch.pi**2) * X[:, 0] ** 2 + 5 / torch.pi * X[:, 0] - 6)
-    t2 = 10 * (1 - 1 / (8 * torch.pi)) * torch.cos(X[:, 0])
-    cost = -2*(t1**2 + t2) + 200
-    assert cost.min().item() > 1
-    return cost
-
-def beale(X):
-    x1, x2 = X[:,0], X[:,1]
-    part1 = (1.5 - x1 + x1 * x2)**2
-    part2 = (2.25 - x1 + x1 * x2**2)**2
-    part3 = (2.625 - x1 + x1 * x2**3)**2
-    cost = (part1+part2+part3)+500
-    cost /= 4.0
-    assert cost.min().item() > 1
-    return cost
-
-def ack_NEGCORR(X):
-    f = Ackley(dim=3)
-    cost = ((f(X)+10) * 20)
-    try:
-        assert cost.min().item() > 1
-    except:
-        print(f"ACKLEY COST MIN = {cost.min().item()}, MAX = {cost.max().item()}")
-    return cost
-
-def ack(X):
-    f = Ackley(dim=3, negate=True)
-    cost = ((f(X)+20) * 100) - 950
-    cost /= 3.0
-    try:
-        assert cost.min().item() > 1
-    except:
-        print(f"ACKLEY COST MIN = {cost.min().item()}, MAX = {cost.max().item()}")
-    return cost
-
-def mich(X):
-    f = Michalewicz()
-    cost = (f(X)+5) * 20
-    try:
-        assert cost.min().item() > 1
-    except:
-        print(f"MICHALE COST MIN = {cost.min().item()}, MAX = {cost.max().item()}")
-    return cost
-
 def apply(f, x, params={}, synthetic = False):
     if synthetic:
         val = (params['scale'] * f(x) + params['shift'])**params['power']
@@ -194,10 +106,10 @@ def stage_cost_func(X, dims=3, stage=1):
         idx = random.randint(0,3)
         scale, shift = random.randint(10, 50), random.randint(50, 100)
         used_costs.append(strs[idx])
-        # print(f'For stage {stage} index {d}, the chosen numbers are idx={idx}, scale={scale}, and shift={shift}')
+
         cost += apply(funcs[idx], X[:,d], {'scale':scale, 'shift':shift, 'power':2})
     cost = cost/(dims*500)
-    # print(f"The used combinations are {used_costs}")
+
     assert cost.min().item() > 0   
     cost = cost.unsqueeze(-1)
     return cost, used_costs
@@ -305,7 +217,7 @@ def generate_input_data(N=None, bounds=None, seed=0, acqf=None, params=None):
         
         cand_cost = costs.sum().item()
         init_cost += cand_cost
-        # print(f"For ACQF = {acqf} at TRIAL {seed/10000} ITERATION {i}, the candidate cost is {cand_cost}, For a cumulative cost of {init_cost}, and the candidate itself is {candidates}")
+        
         X = candidates if X == [] else torch.cat((X, candidates))
         i += 1
     return X
