@@ -7,9 +7,11 @@ from copy import deepcopy
 import torch
 import csv
 from typing import Iterable
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def bo_trial(trial_number, acqf, iter_function, wandb, params=None):
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+MS_ACQFS = ['EEIPU', 'MS_CArBO', 'LaMBO', 'MS_BO']
+
+def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
 
     trial_logs = read_json('logs')
     bound_list = read_json('bounds')
@@ -28,7 +30,7 @@ def bo_trial(trial_number, acqf, iter_function, wandb, params=None):
     while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
-        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
         
         new_y = F(new_x, params).unsqueeze(-1)
         new_c = Cost_F(new_x, params)
@@ -36,7 +38,7 @@ def bo_trial(trial_number, acqf, iter_function, wandb, params=None):
         
         new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
 
-        if acqf not in ['EEIPU', 'MS_CArBO']:
+        if acqf not in MS_ACQFS:
             new_c = new_c.sum()
         
         X = torch.cat([X, new_x])

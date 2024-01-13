@@ -8,11 +8,12 @@ def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
     mll, gp_model = get_gp_models(train_x, train_y, iter, params=params)
     
     norm_bounds = get_gen_bounds(params['h_ind'], params['normalization_bounds'], bound_type='norm')
-    prefix_pool = None
     
     acqf = ExpectedImprovement(model=gp_model, best_f=train_y.max())
     
-    new_x, n_memoised, acq_value = optimize_acqf_by_mem(acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, iter=iter, prefix_pool=prefix_pool, params=params, seed=params['rand_seed'])
+    new_x, n_memoised, acq_value = optimize_acqf_by_mem(
+        acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, 
+        iter=iter, params=params, seed=params['rand_seed'])
     
     E_c, E_inv_c, E_y = [0], torch.tensor([0]), 0
     new_x = unnormalize(new_x, bounds=bounds['x_cube'])

@@ -14,7 +14,7 @@ def assert_positive_costs(cost):
     try:
         assert cost.min() > 0
     except:
-        print(f"Negative costs detected")
+        print("Negative costs detected")
 
 def normalize(data, bounds=None):
     data_ = data + 0
@@ -173,30 +173,35 @@ def initialize_GP_model(X, y, params=None):
     mll = ExactMarginalLogLikelihood(gp_model.likelihood, gp_model).to(DEVICE)
     return mll, gp_model
 
-def generate_prefix_pool(X, acqf, params):
-    prefix_pool = []
-    first_idx = params['n_init_data']
+def generate_prefix_pool(X, Y, acqf, params):
 
+    first_idx = params['n_init_data']
+    x, y = X[first_idx:], Y[first_idx:]
+    avg_obj = y.mean().item()
+
+    data_pool = [(x[i, :], y[i].item()) for i in range(x.shape[0])]
+    data_pool = data_pool.sort(key = lambda d: d[1], reverse=True)
+    
+    prefix_pool = [[]]
     if acqf not in ['EEIPU', 'EIPU-MEMO']:
-        prefix_pool.append([])
         return prefix_pool
         
-    for i, param_config in enumerate(X[first_idx:]):
+    for i, (param_config, obj) in enumerate(d):
+        
+        if obj < avg_obj:
+            break
+            
         prefix = []
         n_stages = len(params['h_ind'])
-        for j in range(n_stages - 1):
+        
+        mem_stages = random.randint(1, n_stages-1)
+        for j in range(mem_stages):
             stage_params = params['h_ind'][j]
             prefix.append(list(param_config[stage_params].cpu().detach().numpy()))
-            prefix_pool.append(copy.deepcopy(prefix))
-    
-    random.shuffle(prefix_pool)
-    
-    # Constant complexity to append at beginning of list
-    prefix_pool = deque(prefix_pool)
-    prefix_pool.appendleft([])
-    prefix_pool = list(prefix_pool)
-    
-    if len(prefix_pool) > params['prefix_thresh']:
-        prefix_pool = prefix_pool[:params['prefix_thresh']]
+            
+        prefix_pool.append(copy.deepcopy(prefix))
+        
+    print(f'Generated {len(prefix_pool)} prefixes out of {len(data_pool)} datapoints')
+            
     return prefix_pool
 

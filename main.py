@@ -15,6 +15,7 @@ import random
 import numpy as np
 
 def arguments():
+    
     parser = ArgumentParser()
     parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["beale2", "hartmann3", "beale2", "ackley3", "branin2"])
     parser.add_argument("--init-eta", type=float, help="Initial ETA", default=1)
@@ -39,6 +40,7 @@ def arguments():
 if __name__=="__main__":
     args, params = arguments()
     trial = args.trial_num
+    
     # wandb.init(
     #     entity="cost-bo",
     #     project="memoised-cost-aware-bo-organized",
@@ -47,11 +49,11 @@ if __name__=="__main__":
     #     name=f"{time.strftime('%Y-%m-%d-%H%M')}-trial-number_{trial}",
     #     config=params
     # )
+    
     botorch.optim.optimize.optimize_acqf = optimize_acqf
     botorch.optim.optimize._optimize_acqf_batch = _optimize_acqf_batch
     botorch.generation.gen.gen_candidates_scipy = gen_candidates_scipy
     botorch.optim.initializers.gen_batch_initial_conditions = gen_batch_initial_conditions
-    
     
     torch.manual_seed(seed=params['rand_seed'])
     np.random.seed(params['rand_seed'])
@@ -64,6 +66,7 @@ if __name__=="__main__":
     params['EI_iteration'] = EI_iteration
     params['CArBO_iteration'] = CArBO_iteration
     params['EIPS_iteration'] = EIPS_iteration
+    params['MS_BO_iteration'] = MS_BO_iteration
 
     # Use this line to customize the initial budget_0 (only counted for the initial data generation)
     params['budget_0'] = 2500
@@ -72,7 +75,13 @@ if __name__=="__main__":
     params['total_budget'] = 8000
 
     # Use this line to customize the number of optimizable hyperparameters per stage for this synthetic experiment
+    
     params_per_stage = [4, 6, 10, 7, 3]
+    
+    if args.acqf == 'MS_BO':
+        params['obj_funcs'] = [params['obj_funcs'][-1]]
+        params_per_stage = [params_per_stage[-1]]
+
     params['h_ind'] = []
     i = 0
     for stage_params in params_per_stage:

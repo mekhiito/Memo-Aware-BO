@@ -8,11 +8,8 @@ def update_candidate(candidate, acqf_val, best_candidate, best_acqf_val, num_mem
         return candidate.detach(), acqf_val, delta
     return best_candidate, best_acqf_val, num_memoised
 
-def optimize_acqf_by_mem(acqf=None, acqf_str=None, bounds=None, iter=None, params=None, prefix_pool=None, seed=0):
+def optimize_acqf_by_mem(acqf=None, acqf_str=None, bounds=None, iter=None, params=None, prefix_pool=[[]], seed=0):
     n_memoised = 0
-    if acqf_str == 'RAND':
-        new_x = get_random_observations(N=1, bounds=bounds)
-        return new_x, n_memoised
     
     best_candidate, best_acqf_val = -torch.inf, -torch.inf
     for prefix in prefix_pool:
