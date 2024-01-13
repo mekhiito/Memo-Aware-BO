@@ -88,30 +88,36 @@ class CArBO(AnalyticAcquisitionFunction):
 
         return reshaped_samples
 
+    def sample_stage_costs(self, cost_posterior, stage_costs):
+        cost_samples = self.cost_sampler(cost_posterior)
+        cost_samples = cost_samples.to(DEVICE)
+        cost_samples = cost_samples.max(dim=2)[0]
+
+        cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,i])
+        cost_samples = torch.exp(cost_samples)
+
+        cost_samples = self.acq_obj(cost_samples)
+
+        cost_samples = cost_samples[:,:,None]
+        cost_samples = cost_samples.to(DEVICE)
+        
+        stage_costs = reshaped_samples if (not torch.is_tensor(stage_costs)) else torch.cat([stage_costs, cost_samples], axis=2)
+
+        return stage_costs
+
     def compute_expected_inverse_cost(self, X: Tensor, delta: int = 0, alpha_epsilon=False) -> Tensor:
         r""" Used to computed the expected inverse cost by which we 'scale' the EI term
         """
         total_cost = None
-        cat_stages = None
-        for i, cost_model in enumerate(self.cost_gp):
-            
-            hyp_indexes = self.params['h_ind'][i]
-            if self.acq_type == 'MS_CArBO':
+        stage_costs = None
+        if self.acq_type == 'MS_CArBO':
+            for i, cost_model in enumerate(self.cost_gp):
+                hyp_indexes = self.params['h_ind'][i]
                 cost_posterior = cost_model.posterior(X[:,:,hyp_indexes])
-            else:
-                cost_posterior = cost_model.posterior(X)
-            cost_samples = self.cost_sampler(cost_posterior)
-            cost_samples = cost_samples.to(DEVICE)
-            cost_samples = cost_samples.max(dim=2)[0]
-
-            cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,i])
-            cost_samples = torch.exp(cost_samples)
-
-            cost_samples = self.acq_obj(cost_samples)
-
-            reshaped_samples = cost_samples[:,:,None]
-            reshaped_samples = reshaped_samples.to(DEVICE)
-            cat_stages = reshaped_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, reshaped_samples], axis=2)
+                stage_costs = self.sample_stage_costs(cost_posterior, stage_costs)
+        else:
+            cost_posterior = cost_model.posterior(X)
+            stage_costs = self.sample_stage_costs(cost_posterior, stage_costs)
         
         n_mem, n_stages = delta, cat_stages.shape[2]
         

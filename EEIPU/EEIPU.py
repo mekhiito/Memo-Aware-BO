@@ -100,10 +100,7 @@ class EEIPU(AnalyticAcquisitionFunction):
                 cat_stages = reshaped_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, reshaped_samples], axis=2)
             else:
                 hyp_indexes = self.params['h_ind'][i]
-                if self.acq_type == 'EEIPU':
-                    cost_posterior = cost_model.posterior(X[:,:,hyp_indexes])
-                else:
-                    cost_posterior = cost_model.posterior(X)
+                cost_posterior = cost_model.posterior(X[:,:,hyp_indexes])
                 cost_samples = self.cost_sampler(cost_posterior)
                 cost_samples = cost_samples.to(DEVICE)
                 cost_samples = cost_samples.max(dim=2)[0]
@@ -115,31 +112,27 @@ class EEIPU(AnalyticAcquisitionFunction):
 
                 reshaped_samples = cost_samples[:,:,None]
                 reshaped_samples = reshaped_samples.to(DEVICE)
-                # reshaped_samples = torch.log(reshaped_samples)
-                # reshaped_samples = self.cost_normalizer(reshaped_samples, self.params)
                 cat_stages = reshaped_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, reshaped_samples], axis=2)
         
         n_mem, n_stages = delta, cat_stages.shape[2]
-        # norm_stages = self.cost_normalizer(cat_stages[:,:,n_mem:n_stages], self.params)
-
-        # cat_stages = torch.cat([cat_stages[:,:,:n_mem],  norm_stages], axis=-1).to(DEVICE)
         
         cat_stages = cat_stages.sum(dim=-1)
         
         cat_stages = 1/cat_stages
         cat_stages = cat_stages.mean(dim=0)
         return cat_stages
-
+        
     def compute_taylor_expansion(self, X: Tensor, delta: int = 0, alpha_epsilon=False) -> Tensor:
         total_cost = None
         cat_stages = None
         for i, cost_model in enumerate(self.cost_gp):
-            
-            hyp_indexes = self.params['h_ind'][i]
-            if self.acq_type == 'EEIPU' or self.acq_type == 'MS_CArBO':
-                cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, self.bounds['c'][:,i])
+
+            if i < delta:
+                cost_samples = torch.full((self.params['cost_samples'], X.shape[0]), self.params['epsilon'], device=DEVICE)
+                cost_samples = cost_samples[:,:,None]
             else:
-                cost_samples = self.get_mc_samples(X, cost_model, self.bounds['c'][:,i]) # REVISIT THIS YOU MORON
+                hyp_indexes = self.params['h_ind'][i]
+                cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, self.bounds['c'][:,i])
                 
             cat_stages = cost_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, cost_samples], axis=2)
         
@@ -148,8 +141,8 @@ class EEIPU(AnalyticAcquisitionFunction):
         sample_var = cat_stages.var(dim=0)
         sample_mean = cat_stages.mean(dim=0)
 
-        taylor_swift = 1/sample_mean + sample_var/sample_mean**3
-        return taylor_swift
+        inv_cost = 1/sample_mean + sample_var/sample_mean**3
+        return inv_cost
 
     def compute_ground_truth(self, X: Tensor, alpha_epsilon=False) -> Tensor:
         cost_samples = self.get_mc_samples(X, self.inv_cost_gp, self.bounds['1/c'])
@@ -166,10 +159,7 @@ class EEIPU(AnalyticAcquisitionFunction):
         all_cost_obj = []
         for i, cost_model in enumerate(self.cost_gp):
             hyp_indexes = self.params['h_ind'][i]
-            if self.acq_type == 'EEIPU' or self.acq_type == 'MS_CArBO':
-                cost_posterior = cost_model.posterior(X[:,hyp_indexes])
-            else:
-                cost_posterior = cost_model.posterior(X)
+            cost_posterior = cost_model.posterior(X[:,hyp_indexes])
             cost_samples = self.cost_sampler(cost_posterior)
             cost_samples = cost_samples.to(DEVICE)
             cost_samples = cost_samples.max(dim=2)[0]
@@ -180,27 +170,35 @@ class EEIPU(AnalyticAcquisitionFunction):
             all_cost_obj.append(cost_obj.mean(dim=0).item())
         return all_cost_obj
 
-    @t_batch_mode_transform(expected_q=1, assert_output_shape=False)
-    def forward(self, X: Tensor, delta: int = 0, curr_iter: int = -1) -> Tensor:
-
-        r"""Evaluate qExpectedImprovement on the candidate set `X`.
-        """
-
+    def EI(self, X):
+        
         self.best_f = self.best_f.to(X)
         posterior = self.model.posterior(
           X=X, posterior_transform=self.posterior_transform
         ) 
+        
         mean = posterior.mean
         view_shape = mean.shape[:-2] if mean.shape[-2] == 1 else mean.shape[:-1]
         mean = mean.view(view_shape)
         sigma = posterior.variance.clamp_min(1e-9).sqrt().view(view_shape)
+        
         u = (mean - self.best_f.expand_as(mean)) / sigma
         if not self.maximize:
             u = -u
+            
         normal = Normal(torch.zeros_like(u), torch.ones_like(u))
         ucdf = normal.cdf(u)
         updf = torch.exp(normal.log_prob(u))
+        
         ei = sigma * (updf + u * ucdf)
+
+        return ei
+
+    @t_batch_mode_transform(expected_q=1, assert_output_shape=False)
+    def forward(self, X: Tensor, delta: int = 0, curr_iter: int = -1) -> Tensor:
+
+        EI = ExpectedImprovement(model=self.model, best_f=self.best_f)
+        ei = EI(X)
 
         total_budget = self.params['total_budget'] + 0
 
