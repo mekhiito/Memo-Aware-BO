@@ -23,12 +23,6 @@ def get_inv_cost_models(X, C_inv, iter, param_idx, bounds, acqf):
     
     return cost_mll, cost_gp
 
-def assert_positive_costs(cost):
-    try:
-        assert cost.min() > 0
-    except:
-        print(f"Negative costs detected")
-
 def get_multistage_cost_models(X, C, iter, param_idx, bounds, acqf):
 
     cost_mll, cost_gp = [], []

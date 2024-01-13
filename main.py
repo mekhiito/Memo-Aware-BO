@@ -20,7 +20,7 @@ def arguments():
     parser.add_argument("--warmup-eta", type=float, help="Warm up", default=1e-2)
     parser.add_argument("--trial-num", type=int, help="Trial number")
     parser.add_argument("--exp-group", type=str, help="Group ID")
-    parser.add_argument("--acqf", type=str, help="Acquisition function", choices=["EEIPU", "EIPU", "EIPU-MEMO", "EI", "RAND", 'CArBO', 'EIPS', 'MS_CArBO'])
+    parser.add_argument("--acqf", type=str, help="Acquisition function", choices=['EEIPU', 'EIPU', 'EIPU-MEMO', 'EI', 'CArBO', 'EIPS', 'MS_CArBO', 'MS_BO', 'LaMBO'])
     
     params:dict = read_json("params")
     
@@ -57,9 +57,13 @@ if __name__=="__main__":
     
     logs = read_json('logs')
 
-    # We need a seed for scale, shift, and one seed per dimension
-    # We can set a seed for the dimensions
+    # Use this line to customize the initial budget_0 (only counted for the initial data generation)
+    params['budget_0'] = 2500
     
+    # Use this line to customize the total optimization budget used by the BO process
+    params['total_budget'] = 8000
+
+    # Use this line to customize the number of optimizable hyperparameters per stage for this synthetic experiment
     params_per_stage = [4, 6, 10, 7, 3]
     params['h_ind'] = []
     i = 0
@@ -69,10 +73,12 @@ if __name__=="__main__":
             stage.append(i)
             i += 1
         params['h_ind'].append(stage)
-    print(params['h_ind'])
-    params['h_ind'] = [[0,1,2,3], [4,5,6,7,8,9], [10,11,12,13,14,15,16,17,18,19], [20,21,22,23,24,25,26], [27,28,29]]
+    # params['h_ind'] = [[0,1,2,3], [4,5,6,7,8,9], [10,11,12,13,14,15,16,17,18,19], [20,21,22,23,24,25,26], [27,28,29]]
     
-    # for trial in range(1, params['n_trials'] + 1):
     trial = args.trial_num
-    bo_trial(trial_number=trial, acqf=args.acqf, wandb=wandb, params=params)
+
+    if args.acqf == 'LaMBO':
+        lambo_trial(trial_number=trial, acqf=args.acqf, wandb=wandb, params=params)
+    else:
+        bo_trial(trial_number=trial, acqf=args.acqf, wandb=wandb, params=params)
     

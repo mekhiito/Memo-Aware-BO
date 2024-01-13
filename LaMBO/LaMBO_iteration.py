@@ -1,6 +1,6 @@
 from botorch.acquisition import UpperConfidenceBound
 
-def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def lambo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
     
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])

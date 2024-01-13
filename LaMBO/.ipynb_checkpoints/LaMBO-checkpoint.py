@@ -123,11 +123,8 @@ class LaMBO:
         X_tree, Y_tree, C_tree, C_inv_tree = [], [], []
         best_f = -1e9
         for leaf in range(n_leaves):
-            x, y, c = get_initial_data(params['lambo_init_data'], bounds=leaf_bounds[leaf], seed=trial_number*10000, acqf=acqf, params=params)
-            
-            c_inv = 1/c.sum(dim=1)
-            c_inv = c_inv.to(DEVICE)
-            c_inv = c_inv.unsqueeze(-1)
+            x, y, c, c_inv = get_initial_data(
+                params['lambo_init_data'], bounds=leaf_bounds[leaf], seed=trial_number*10000, acqf=acqf, params=params)
             
             X_tree.append(x)
             y_tree.append(y)
@@ -181,7 +178,7 @@ class LaMBO:
     
             bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
     
-            new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
+            new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = lambo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
     
             sigma = np.array(random.choices([-1, 1], k=H))
             sigma[-1] = -1
@@ -197,25 +194,22 @@ class LaMBO:
             partitions, last_stage_partitions = build_partitions(global_input_bounds, h_ind, n_stages)
         
             mset, root = build_tree(partitions, depths, last_stage_partitions)
-
-            new_x = new_x.to(DEVICE)
+        
             new_y = F(new_x, params).unsqueeze(-1)
-            new_y = new_y.to(DEVICE)
             new_c = Cost_F(new_x, params)
-            new_c = new_c.to(DEVICE)
             inv_cost = torch.tensor([1/new_c.sum()]).unsqueeze(-1)
-            inv_cost = inv_cost.to(DEVICE)
+            
+            new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
             
             X[arm_idx] = torch.cat([X[arm_idx], new_x])
             Y[arm_idx] = torch.cat([Y[arm_idx], new_y])
-            C_inv[arm_idx] = torch.cat([C_inv, inv_cost])
             C[arm_idx] = torch.cat([C[arm_idx], new_c])
+            C_inv[arm_idx] = torch.cat([C_inv[arm_idx], inv_cost])
             
             best_f = max(best_f, new_y.item())
             for stage in range(n_memoised):
                 new_c[:,stage] = torch.tensor([params['epsilon']])
     
-            # stage_cost_list = new_c.tolist()
             sum_stages = new_c.sum().item()        
             cum_cost += sum_stages
 
@@ -226,27 +220,24 @@ class LaMBO:
                 best_f=best_f,
                 sum_c_x=sum_stages,
                 cum_costs=cum_cost,
-                # c_x=dict(zip(map(str,range(len(stage_cost_list))) ,stage_cost_list))
             )
     
             iteration += 1
     
             dir_name = f"syn_logs_"
             csv_file_name = f"{dir_name}/{acqf}_trial_{trial_number}.csv"
-            # Check if the file exists
+
             try:
                 with open(csv_file_name, 'r') as csvfile:
                     reader = csv.reader(csvfile)
-                    fieldnames = next(reader)  # Read the headers in the first row
+                    fieldnames = next(reader)
     
             except FileNotFoundError:
-                # If file does not exist, create it and write headers
                 fieldnames = ['acqf', 'trial', 'iteration', 'best_f', 'sum_c_x', 'cum_costs']
                 with open(csv_file_name, 'w', newline='') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                     writer.writeheader()
     
-            # Append data
             with open(csv_file_name, 'a', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writerow(log)
