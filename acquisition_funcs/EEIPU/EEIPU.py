@@ -72,7 +72,8 @@ class EEIPU(AnalyticAcquisitionFunction):
         self.consumed_budget = consumed_budget
         self.warmup = True
 
-    def get_mc_samples(self, X: Tensor, gp_model, bounds):
+    def get_mc_samples(self, X: Tensor, gp_model, stage_costs, bounds):
+        
         cost_posterior = gp_model.posterior(X)
         cost_samples = self.cost_sampler(cost_posterior)
         cost_samples = cost_samples.to(DEVICE)
@@ -83,63 +84,61 @@ class EEIPU(AnalyticAcquisitionFunction):
 
         cost_samples = self.acq_obj(cost_samples)
 
-        reshaped_samples = cost_samples[:,:,None]
-        reshaped_samples = reshaped_samples.to(DEVICE)
+        cost_samples = cost_samples[:,:,None]
+        cost_samples = cost_samples.to(DEVICE)
+        
+        stage_costs = cost_samples if (not torch.is_tensor(stage_costs)) else torch.cat([stage_costs, cost_samples], axis=2)
 
-        return reshaped_samples
+        return stage_costs
 
+    def get_memoized_costs(self, X, delta):
+        
+        stage_costs = None
+        for i in range(delta):
+            cost_model = self.cost_gp[i]
+            
+            cost_samples = torch.full((self.params['cost_samples'], X.shape[0]), self.params['epsilon'], device=DEVICE)
+            cost_samples = cost_samples[:,:,None]
+            cost_samples = cost_samples.to(DEVICE)
+            
+            stage_costs = cost_samples if (not torch.is_tensor(stage_costs)) else torch.cat([stage_costs, cost_samples], axis=2)
+            
+        return stage_costs
+
+    def get_stagewise_expected_costs(self, X, delta):
+
+        # Discount Memoized stages by setting their costs to epsilon
+        stage_costs = self.get_memoized_costs(X, delta)
+        
+        # Use MC Sampling to get the expected costs of unmemoized stages
+        for i in range(delta, len(self.cost_gp)):
+            cost_model = self.cost_gp[i]
+            hyp_indexes = self.params['h_ind'][i]
+            
+            cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, stage_costs, self.bounds['c'][:,i])
+            stage_costs = cost_samples if (not torch.is_tensor(stage_costs)) else torch.cat([stage_costs, cost_samples], axis=2)
+
+        return stage_costs
+        
     def compute_expected_inverse_cost(self, X: Tensor, delta: int = 0, alpha_epsilon=False) -> Tensor:
-        r""" Used to computed the expected inverse cost by which we 'scale' the EI term
-        """
-        total_cost = None
-        cat_stages = None
-        for i, cost_model in enumerate(self.cost_gp):
-            if i < delta:
-                cost_samples = torch.full((self.params['cost_samples'], X.shape[0]), self.params['epsilon'], device=DEVICE) # generate a tensor of epsilons
-                reshaped_samples = cost_samples[:,:,None]
-                cat_stages = reshaped_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, reshaped_samples], axis=2)
-            else:
-                hyp_indexes = self.params['h_ind'][i]
-                cost_posterior = cost_model.posterior(X[:,:,hyp_indexes])
-                cost_samples = self.cost_sampler(cost_posterior)
-                cost_samples = cost_samples.to(DEVICE)
-                cost_samples = cost_samples.max(dim=2)[0]
-
-                cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,i])
-                cost_samples = torch.exp(cost_samples)
-
-                cost_samples = self.acq_obj(cost_samples)
-
-                reshaped_samples = cost_samples[:,:,None]
-                reshaped_samples = reshaped_samples.to(DEVICE)
-                cat_stages = reshaped_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, reshaped_samples], axis=2)
         
-        n_mem, n_stages = delta, cat_stages.shape[2]
+        stage_costs = self.get_stagewise_expected_costs(X, delta)
         
-        cat_stages = cat_stages.sum(dim=-1)
+        stage_costs = stage_costs.sum(dim=-1)
         
-        cat_stages = 1/cat_stages
-        cat_stages = cat_stages.mean(dim=0)
-        return cat_stages
+        inv_cost = 1/stage_costs
+        inv_cost = inv_cost.mean(dim=0)
+        
+        return inv_cost
         
     def compute_taylor_expansion(self, X: Tensor, delta: int = 0, alpha_epsilon=False) -> Tensor:
-        total_cost = None
-        cat_stages = None
-        for i, cost_model in enumerate(self.cost_gp):
-
-            if i < delta:
-                cost_samples = torch.full((self.params['cost_samples'], X.shape[0]), self.params['epsilon'], device=DEVICE)
-                cost_samples = cost_samples[:,:,None]
-            else:
-                hyp_indexes = self.params['h_ind'][i]
-                cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, self.bounds['c'][:,i])
-                
-            cat_stages = cost_samples if (not torch.is_tensor(cat_stages)) else torch.cat([cat_stages, cost_samples], axis=2)
         
-        cat_stages = cat_stages.sum(dim=-1)
+        stage_costs = self.get_stagewise_expected_costs(X, delta)
         
-        sample_var = cat_stages.var(dim=0)
-        sample_mean = cat_stages.mean(dim=0)
+        stage_costs = stage_costs.sum(dim=-1)
+        
+        sample_var = stage_costs.var(dim=0)
+        sample_mean = stage_costs.mean(dim=0)
 
         inv_cost = 1/sample_mean + sample_var/sample_mean**3
         return inv_cost
@@ -149,12 +148,8 @@ class EEIPU(AnalyticAcquisitionFunction):
         
         ground_truth = cat_stages.mean(dim=0)
         return ground_truth
- 
 
     def compute_expected_cost(self, X: Tensor) -> Tensor:
-        r""" Custom function.
-        Used for debugging the return value of expected inverse cost function above.
-        """
 
         all_cost_obj = []
         for i, cost_model in enumerate(self.cost_gp):
@@ -170,7 +165,7 @@ class EEIPU(AnalyticAcquisitionFunction):
             all_cost_obj.append(cost_obj.mean(dim=0).item())
         return all_cost_obj
 
-    def EI(self, X):
+    def custom_EI(self, X):
         
         self.best_f = self.best_f.to(X)
         posterior = self.model.posterior(

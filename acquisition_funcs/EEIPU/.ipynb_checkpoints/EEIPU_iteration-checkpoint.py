@@ -23,14 +23,14 @@ def EEIPU_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
                         consumed_budget=consumed_budget, iter=iter, params=params)
     
     new_x, n_memoised, acq_value = optimize_acqf_by_mem(
-        acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, 
+        acqf=acqf, acqf_str=acqf_str, bounds=bounds['x'], 
         iter=iter, prefix_pool=prefix_pool, params=params, seed=params['rand_seed'])
     
     E_c, E_inv_c, E_y = [0], torch.tensor([0]), 0
     E_c = acqf.compute_expected_cost(new_x)
     E_inv_c = acqf.compute_expected_inverse_cost(new_x[:, None, :])
 
-    new_x = unnormalize(new_x, bounds=bounds['x_cube'])
+    # new_x = unnormalize(new_x, bounds=bounds['x_cube'])
     
     
     return new_x, n_memoised, E_c, E_inv_c, E_y, acq_value
