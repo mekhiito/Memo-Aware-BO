@@ -1,4 +1,8 @@
 from EIPS import EIPS
+import torch
+from functions.processing_funcs import normalize, unnormalize, standardize, unstandardize, get_gen_bounds
+from functions.iteration_functions import get_gp_models
+from optimize_mem_acqf import optimize_acqf_by_mem
 
 def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
     

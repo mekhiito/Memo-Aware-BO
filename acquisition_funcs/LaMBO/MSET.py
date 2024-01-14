@@ -1,8 +1,9 @@
 import copy
 import numpy as np
+import torch
 import random
 
-# DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class Node:
     def __init__(self, parent, depth, idx):

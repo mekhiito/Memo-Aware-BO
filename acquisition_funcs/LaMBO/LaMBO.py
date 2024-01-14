@@ -1,5 +1,19 @@
+from LaMBO_iteration import lambo_iteration
+from json_reader import read_json
+from functions.iteration_functions import iteration_logs
+from functions.processing_funcs import get_gen_bounds, get_dataset_bounds, get_initial_data
+from functions.synthetic_functions import Cost_F, F
+from MSET import MSET, Node
+import numpy as np
+import random
+import torch
+import copy
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 class LaMBO:
-    def __init__():
+    def __init__(self, eta):
+        self.eta = eta
         return
 
     def build_partitions(self, input_bounds, h_ind, n_stages):
@@ -19,14 +33,14 @@ class LaMBO:
             p = [lo, hi]
             last_stage_partition.append(p)
     
-        return partitions, last_stage_partitions
+        return partitions, last_stage_partition
     
     def get_pdf(self, n_leaves):
         unif_prob = 1.0/n_leaves
         probs = np.array([unif_prob for i in range(n_leaves)])
         return probs
     
-    def build_tree(self, partitions, depths, last_stage_partitions):
+    def build_tree(self, partitions, depths, last_stage_partition):
         root = Node(None, 0)
         mset = MSET(partitions, depths, last_stage_partition)
         
@@ -53,11 +67,11 @@ class LaMBO:
     
         return node.leaf_ranges
     
-    def select_arm(self, root, leaves, prev_h, prev_arm_idx, n_leaves):
+    def select_arm(self, root, leaves, probs, prev_h, prev_arm_idx, n_leaves):
         
     
         arm_choices = np.array([i for i in range(n_leaves)])
-        valid_arm_idx = get_subtree_arms(root, prev_h, prev_arm_idx)
+        valid_arm_idx = self.get_subtree_arms(root, prev_h, prev_arm_idx)
     
         valid_arm_choices = arm_choices[valid_arm_idx[0]:valid_arm_idx[1]+1]
         valid_probs = probs[valid_arm_idx[0]:valid_arm_idx[1]+1]
@@ -66,7 +80,7 @@ class LaMBO:
     
         return leaves[arm_idx], arm_idx
     
-    def update_loss_estimators(self, loss, root, arm_idx, sigma, eta, H, acq_value):
+    def update_loss_estimators(self, loss, root, probs, arm_idx, sigma, H, acq_value):
         loss[arm_idx][0] = acq_value
         node = copy.deepcopy(root)
         for height in range(1, H):
@@ -78,23 +92,23 @@ class LaMBO:
         
             nominator = 0
             for leaf_idx in range(node.leaf_ranges[0], node.leaf_ranges[1]):
-                nominator += (probs[leaf_idx] * np.exp(-eta * (1 + sigma[height-1]) * loss[leaf_idx][height-1]))
+                nominator += (probs[leaf_idx] * np.exp(-self.eta * (1 + sigma[height-1]) * loss[leaf_idx][height-1]))
         
             denominator = probs[node.leaf_ranges[0]:node.leaf_ranges[1]+1].sum()
             
-            loss_i = np.log( nominator / denominator )**(-int(1/eta))
+            loss_i = np.log( nominator / denominator )**(-int(1/self.eta))
     
             loss[arm_idx][height] = sigma[height] * loss_i
     
         return loss
     
-    def update_arm_probability(self, loss, arm_idx, n_leaves, eta):
+    def update_arm_probability(self, loss, probs, arm_idx, n_leaves):
         
-        nominator = probs[arm_idx] * np.exp(-eta*loss[arm_idx,:].sum())
+        nominator = probs[arm_idx] * np.exp(-self.eta*loss[arm_idx,:].sum())
         
         denominator = 0
         for leaf_idx in range(n_leaves):
-            denominator += probs[leaf_idx] * np.exp(-eta*loss[leaf_idx,:].sum())
+            denominator += probs[leaf_idx] * np.exp(-self.eta*loss[leaf_idx,:].sum())
     
         probs[arm_idx] = nominator/denominator
     
@@ -127,8 +141,8 @@ class LaMBO:
                 params['lambo_init_data'], bounds=leaf_bounds[leaf], seed=trial_number*10000, acqf=acqf, params=params)
             
             X_tree.append(x)
-            y_tree.append(y)
-            c_tree.append(c)
+            Y_tree.append(y)
+            C_tree.append(c)
             C_inv_tree.append(c_inv)
             best_f = max(best_f, y.max().item())
     
@@ -137,21 +151,22 @@ class LaMBO:
     def lambo_trial(self, trial_number, acqf, wandb, params=None):
         
         chosen_functions, h_ind, total_budget = params['obj_funcs'], params['h_ind'], params['total_budget']
-        
+        bound_list = read_json('bounds')
+
         global_input_bounds = get_gen_bounds(h_ind, bound_list, funcs=chosen_functions)
     
         n_stages = len(h_ind)
         n_leaves = 2**(n_stages-1)
-    
-        partitions, last_stage_partitions = build_partitions(global_input_bounds, h_ind, n_stages)
         
-        mset, root = build_tree(partitions, depths, last_stage_partitions)
+        probs = self.get_pdf(n_leaves)
+
+        partitions, last_stage_partition = self.build_partitions(global_input_bounds, h_ind, n_stages)
+        
+        mset, root = self.build_tree(partitions, depths, last_stage_partition)
     
         depths = [ 1 for i in range(n_stages - 1) ]
     
-        X_tree, Y_tree, C_tree, C_inv_tree, best_f = build_datasets(acqf, mset.leaves, trial_number, n_leaves, params)
-    
-        probs = get_pdf(n_leaves)
+        X_tree, Y_tree, C_tree, C_inv_tree, best_f = self.build_datasets(acqf, mset.leaves, trial_number, n_leaves, params)
     
         H = sum(depths)
         h = H + 0
@@ -172,28 +187,28 @@ class LaMBO:
                 
             leaf_bounds = mset.leaves
     
-            input_bounds, arm_idx = select_arm(root, leaves, h, arm_idx, n_leaves)
+            input_bounds, arm_idx = self.select_arm(root, leaf_bounds, probs, h, arm_idx, n_leaves)
     
             X, Y, C, C_inv = X_tree[arm_idx], Y_tree[arm_idx], C_tree[arm_idx], C_inv_tree[arm_idx]
     
             bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
     
-            new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = lambo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
+            new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = lambo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=self.eta, iter=iteration, consumed_budget=cum_cost, params=params)
     
             sigma = np.array(random.choices([-1, 1], k=H))
             sigma[-1] = -1
     
             h = np.where(sigma == -1)[0][0]
     
-            loss = update_loss_estimators(loss, root, arm_idx, sigma, eta, H, acq_value)
+            loss = self.update_loss_estimators(loss, root, probs, arm_idx, sigma, H, acq_value)
     
-            probs = update_arm_probability(loss, arm_idx, n_leaves, eta)
+            probs = self.update_arm_probability(loss, probs, arm_idx, n_leaves)
     
-            global_input_bounds = remove_invalid_partitions(input_bounds, probs, h_ind, n_leaves, n_stages, mset.leaf_partitions)
+            global_input_bounds = self.remove_invalid_partitions(input_bounds, probs, h_ind, n_leaves, n_stages, mset.leaf_partitions)
         
-            partitions, last_stage_partitions = build_partitions(global_input_bounds, h_ind, n_stages)
+            partitions, last_stage_partition = self.build_partitions(global_input_bounds, h_ind, n_stages)
         
-            mset, root = build_tree(partitions, depths, last_stage_partitions)
+            mset, root = self.build_tree(partitions, depths, last_stage_partition)
         
             new_y = F(new_x, params).unsqueeze(-1)
             new_c = Cost_F(new_x, params)

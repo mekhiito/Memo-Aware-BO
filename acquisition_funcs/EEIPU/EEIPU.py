@@ -1,5 +1,6 @@
 from botorch.acquisition.objective import  IdentityMCObjective, MCAcquisitionObjective, PosteriorTransform
 from botorch.acquisition.analytic import AnalyticAcquisitionFunction
+from botorch.acquisition import ExpectedImprovement
 from botorch.sampling import MCSampler
 from botorch.models.model import Model
 from botorch.utils import t_batch_mode_transform
@@ -72,7 +73,7 @@ class EEIPU(AnalyticAcquisitionFunction):
         self.consumed_budget = consumed_budget
         self.warmup = True
 
-    def get_mc_samples(self, X: Tensor, gp_model, stage_costs, bounds):
+    def get_mc_samples(self, X: Tensor, gp_model, bounds):
         
         cost_posterior = gp_model.posterior(X)
         cost_samples = self.cost_sampler(cost_posterior)
@@ -87,16 +88,12 @@ class EEIPU(AnalyticAcquisitionFunction):
         cost_samples = cost_samples[:,:,None]
         cost_samples = cost_samples.to(DEVICE)
         
-        stage_costs = cost_samples if (not torch.is_tensor(stage_costs)) else torch.cat([stage_costs, cost_samples], axis=2)
-
-        return stage_costs
+        return cost_samples
 
     def get_memoized_costs(self, X, delta):
         
         stage_costs = None
         for i in range(delta):
-            cost_model = self.cost_gp[i]
-            
             cost_samples = torch.full((self.params['cost_samples'], X.shape[0]), self.params['epsilon'], device=DEVICE)
             cost_samples = cost_samples[:,:,None]
             cost_samples = cost_samples.to(DEVICE)
@@ -115,7 +112,7 @@ class EEIPU(AnalyticAcquisitionFunction):
             cost_model = self.cost_gp[i]
             hyp_indexes = self.params['h_ind'][i]
             
-            cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, stage_costs, self.bounds['c'][:,i])
+            cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, self.bounds['c'][:,i])
             stage_costs = cost_samples if (not torch.is_tensor(stage_costs)) else torch.cat([stage_costs, cost_samples], axis=2)
 
         return stage_costs
@@ -144,9 +141,9 @@ class EEIPU(AnalyticAcquisitionFunction):
         return inv_cost
 
     def compute_ground_truth(self, X: Tensor, alpha_epsilon=False) -> Tensor:
-        cost_samples = self.get_mc_samples(X, self.inv_cost_gp, self.bounds['1/c'])
+        stage_costs = self.get_mc_samples(X, self.inv_cost_gp, self.bounds['1/c'])
         
-        ground_truth = cat_stages.mean(dim=0)
+        ground_truth = stage_costs.mean(dim=0)
         return ground_truth
 
     def compute_expected_cost(self, X: Tensor) -> Tensor:
@@ -192,8 +189,8 @@ class EEIPU(AnalyticAcquisitionFunction):
     @t_batch_mode_transform(expected_q=1, assert_output_shape=False)
     def forward(self, X: Tensor, delta: int = 0, curr_iter: int = -1) -> Tensor:
 
-        EI = ExpectedImprovement(model=self.model, best_f=self.best_f)
-        ei = EI(X)
+        ei = ExpectedImprovement(model=self.model, best_f=self.best_f)
+        ei_x = ei(X)
 
         total_budget = self.params['total_budget'] + 0
 
@@ -204,4 +201,4 @@ class EEIPU(AnalyticAcquisitionFunction):
      
         inv_cost =  self.compute_expected_inverse_cost(X, delta=delta)
 
-        return ei * (inv_cost**cost_cool)
+        return ei_x * (inv_cost**cost_cool)
