@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 import time
 from copy import deepcopy
 from acquisition_funcs.EEIPU.EEIPU_iteration import EEIPU_iteration
-from EI.EI_iteration import EI_iteration
+from acquisition_funcs.EI.EI_iteration import EI_iteration
 from acquisition_funcs.cost_aware_acqf.CArBO_iteration import CArBO_iteration
 from acquisition_funcs.cost_aware_acqf.EIPS_iteration import EIPS_iteration
 from acquisition_funcs.LaMBO.LaMBO import LaMBO
@@ -67,6 +67,7 @@ if __name__=="__main__":
     params['EEIPU_iteration'] = EEIPU_iteration
     params['EI_iteration'] = EI_iteration
     params['CArBO_iteration'] = CArBO_iteration
+    params['MS_CArBO_iteration'] = CArBO_iteration
     params['EIPS_iteration'] = EIPS_iteration
     params['MS_BO_iteration'] = MS_BO_iteration
 
@@ -97,8 +98,9 @@ if __name__=="__main__":
     trial = args.trial_num
 
     if args.acqf == 'LaMBO':
+        params['lambo_eta'] = 0.9
         lambo = LaMBO(params['lambo_eta'])
         lambo.lambo_trial(trial_number=trial, acqf=args.acqf, wandb=wandb, params=params)
     else:
-        bo_trial(trial_number=trial, acqf=args.acqf, iter_function=params[f'{args.acqf}_iteration'], wandb=wandb, params=params)
+        bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], wandb=wandb, params=params)
     

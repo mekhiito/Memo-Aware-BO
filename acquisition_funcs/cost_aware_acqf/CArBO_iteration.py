@@ -1,12 +1,12 @@
-from CArBO import CArBO
+from acquisition_funcs.cost_aware_acqf.CArBO import CArBO
 import torch
 from functions.processing_funcs import normalize, unnormalize, standardize, unstandardize, get_gen_bounds
-from functions.iteration_functions import get_gp_models, get_multistage_cost_models, get_inv_cost_models
+from functions.iteration_functions import get_gp_models, get_multistage_cost_models, get_cost_model, get_inv_cost_models
 from optimize_mem_acqf import optimize_acqf_by_mem
 from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 
-def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def CArBO_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
     
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])
@@ -15,8 +15,11 @@ def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
     
     norm_bounds = get_gen_bounds(params['h_ind'], params['normalization_bounds'], bound_type='norm')
 
-    
-    cost_mll, cost_gp = get_multistage_cost_models(train_x, c, iter, params['h_ind'], bounds, acqf_str)
+    if acqf_str == 'CArBO':
+        cost_mll, cost_gp = get_cost_model(train_x, c, iter, params['h_ind'], bounds, acqf_str)
+    else:
+        cost_mll, cost_gp = get_multistage_cost_models(train_x, c, iter, params['h_ind'], bounds, acqf_str)
+        
     inv_cost_mll, inv_cost_gp = get_inv_cost_models(train_x, c_inv, iter, params['h_ind'], bounds, acqf_str)
         
     cost_sampler = SobolQMCNormalSampler(sample_shape=params['cost_samples'], seed=params['rand_seed'])
@@ -27,7 +30,7 @@ def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
     
     new_x, n_memoised, acq_value = optimize_acqf_by_mem(
         acqf=acqf, acqf_str=acqf_str, bounds=bounds['x'], 
-        iter=iter, prefix_pool=None, params=params, seed=params['rand_seed'])
+        iter=iter, params=params, seed=params['rand_seed'])
     
     E_c, E_inv_c, E_y = [0], torch.tensor([0]), 0
     E_c = acqf.compute_expected_cost(new_x)

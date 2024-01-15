@@ -1,12 +1,8 @@
 from json_reader import read_json
-from functions import generate_input_data, generate_ei_input_data, F, Cost_F, get_gen_bounds, get_dataset_bounds
-from LaMBO.MSET import MSET, Node
-from single_iteration import bo_iteration
-import numpy as np
-from copy import deepcopy
+from functions.processing_funcs import get_gen_bounds, get_dataset_bounds, get_initial_data
+from functions.synthetic_functions import F, Cost_F
+from functions.iteration_functions import iteration_logs
 import torch
-import csv
-from typing import Iterable
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 MS_ACQFS = ['EEIPU', 'MS_CArBO', 'LaMBO', 'MS_BO']
@@ -21,16 +17,19 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     input_bounds = get_gen_bounds(h_ind, bound_list, funcs=chosen_functions)
     
     X, Y, C, C_inv = get_initial_data(params['n_init_data'], bounds=input_bounds, seed=trial_number*10000, acqf=acqf, params=params)
+    params['n_init_data'] = X.shape[0]
+    print(f'Initial Data has {X.shape} points')
     
     best_fs = [Y.max().item()]
     total_budget = params['total_budget']
     cum_cost = 0
     iteration = 0
     
-    while cum_cost < total_budget:
+    for jj in range(1):
+    # while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
-        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, consumed_budget=cum_cost, params=params)
         
         new_y = F(new_x, params).unsqueeze(-1)
         new_c = Cost_F(new_x, params)
@@ -39,7 +38,7 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
         new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
 
         if acqf not in MS_ACQFS:
-            new_c = new_c.sum()
+            new_c = new_c.sum(dim=1).unsqueeze(-1)
         
         X = torch.cat([X, new_x])
         Y = torch.cat([Y, new_y])

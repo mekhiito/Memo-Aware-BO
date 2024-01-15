@@ -1,6 +1,6 @@
 # kill -9 $(nvidia-smi --query-compute-apps=pid --format=csv,noheader)
 exp_group=$(date '+%Y%m%d-%H%M')
-ACQF_ARRAY=("EEIPU")
+ACQF_ARRAY=("LaMBO")
 
 for acqf in ${ACQF_ARRAY[@]}; do
     for trial in {1..1}; do

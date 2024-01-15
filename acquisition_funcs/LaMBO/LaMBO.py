@@ -1,9 +1,9 @@
-from LaMBO_iteration import lambo_iteration
+from acquisition_funcs.LaMBO.LaMBO_iteration import lambo_iteration
 from json_reader import read_json
 from functions.iteration_functions import iteration_logs
 from functions.processing_funcs import get_gen_bounds, get_dataset_bounds, get_initial_data
 from functions.synthetic_functions import Cost_F, F
-from MSET import MSET, Node
+from acquisition_funcs.LaMBO.MSET import MSET, Node
 import numpy as np
 import random
 import torch

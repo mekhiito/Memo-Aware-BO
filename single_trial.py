@@ -17,6 +17,8 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     input_bounds = get_gen_bounds(h_ind, bound_list, funcs=chosen_functions)
     
     X, Y, C, C_inv = get_initial_data(params['n_init_data'], bounds=input_bounds, seed=trial_number*10000, acqf=acqf, params=params)
+    params['n_init_data'] = X.shape[0]
+    print(f'Initial Data has {X.shape} points')
     
     best_fs = [Y.max().item()]
     total_budget = params['total_budget']
@@ -36,7 +38,7 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
         new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
 
         if acqf not in MS_ACQFS:
-            new_c = new_c.sum()
+            new_c = new_c.sum(dim=1).unsqueeze(-1)
         
         X = torch.cat([X, new_x])
         Y = torch.cat([Y, new_y])

@@ -17,7 +17,7 @@ def lambo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
     
     new_x, n_memoised, acq_value = optimize_acqf_by_mem(
         acqf=acqf, acqf_str=acqf_str, bounds=bounds['x'], 
-        iter=iter, prefix_pool=None, params=params, seed=params['rand_seed'])
+        iter=iter, params=params, seed=params['rand_seed'])
     
     E_c, E_inv_c, E_y = [0], torch.tensor([0]), 0
     # new_x = unnormalize(new_x, bounds=bounds['x_cube'])

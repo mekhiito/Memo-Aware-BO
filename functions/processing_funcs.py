@@ -51,7 +51,7 @@ def get_initial_data(n, bounds=None, seed=0, acqf=None, params=None):
     c = Cost_F(X, params)
 
     if acqf not in ['EEIPU', 'MS_CArBO']:
-        c = c.sum(dim=1)
+        c = c.sum(dim=1).unsqueeze(-1)
 
     c_inv = 1/c.sum(dim=1)
     c_inv = c_inv.to(DEVICE)
@@ -177,13 +177,14 @@ def generate_prefix_pool(X, Y, acqf, params):
     first_idx = params['n_init_data']
     x, y = X[first_idx:], Y[first_idx:]
     avg_obj = y.mean().item()
-
-    data_pool = [(x[i, :], y[i].item()) for i in range(x.shape[0])]
-    data_pool = data_pool.sort(key = lambda d: d[1], reverse=True)
     
+    data_pool = [(x[i, :], y[i].item()) for i in range(x.shape[0])]
+    data_pool.sort(key = lambda d: d[1], reverse=True)
     prefix_pool = [[]]
     if acqf not in ['EEIPU', 'EIPU-MEMO']:
         return prefix_pool
+
+    print(f'We are generating a prefix pool from {x.shape[0]} data point. We have extracted a data pool of size {len(data_pool)}')
         
     for i, (param_config, obj) in enumerate(data_pool):
         

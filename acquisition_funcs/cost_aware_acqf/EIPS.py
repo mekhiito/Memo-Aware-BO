@@ -92,17 +92,8 @@ class EIPS(AnalyticAcquisitionFunction):
 
     def get_stagewise_expected_costs(self, X):
 
-        if self.acq_type == 'CArBO':
-            return self.get_mc_samples(X, cost_model, stage_costs, self.bounds['c'][:,0])
+        return self.get_mc_samples(X, self.cost_gp[0], self.bounds['c'][:,0])
         
-        # Use MC Sampling to get the expected costs of unmemoized stages
-        stage_costs = None
-        for i, cost_model in enumerate(self.cost_gp):
-            hyp_indexes = self.params['h_ind'][i]
-            
-            cost_samples = self.get_mc_samples(X[:,:,hyp_indexes], cost_model, self.bounds['c'][:,i])
-            stage_costs = cost_samples if (not torch.is_tensor(stage_costs)) else torch.cat([stage_costs, cost_samples], axis=2)
-
         return stage_costs
         
     def compute_expected_inverse_cost(self, X: Tensor) -> Tensor:
@@ -119,17 +110,18 @@ class EIPS(AnalyticAcquisitionFunction):
     def compute_expected_cost(self, X: Tensor) -> Tensor:
 
         all_cost_obj = []
-        for i, cost_model in enumerate(self.cost_gp):
-            hyp_indexes = self.params['h_ind'][i]
-            cost_posterior = cost_model.posterior(X[:,hyp_indexes])
-            cost_samples = self.cost_sampler(cost_posterior)
-            cost_samples = cost_samples.to(DEVICE)
-            cost_samples = cost_samples.max(dim=2)[0]
-            
-            cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,i])
-            cost_samples = torch.exp(cost_samples)
-            cost_obj = self.acq_obj(cost_samples)
-            all_cost_obj.append(cost_obj.mean(dim=0).item())
+        cost_model = self.cost_gp[0]
+        
+        cost_posterior = cost_model.posterior(X)
+        
+        cost_samples = self.cost_sampler(cost_posterior)
+        cost_samples = cost_samples.to(DEVICE)
+        cost_samples = cost_samples.max(dim=2)[0]
+        
+        cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,0])
+        cost_samples = torch.exp(cost_samples)
+        cost_obj = self.acq_obj(cost_samples)
+        all_cost_obj.append(cost_obj.mean(dim=0).item())
         return all_cost_obj
 
     def custom_EI(self, X):

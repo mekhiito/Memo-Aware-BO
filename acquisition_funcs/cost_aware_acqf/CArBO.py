@@ -93,7 +93,7 @@ class CArBO(AnalyticAcquisitionFunction):
     def get_stagewise_expected_costs(self, X):
 
         if self.acq_type == 'CArBO':
-            return self.get_mc_samples(X, cost_model, stage_costs, self.bounds['c'][:,0])
+            return self.get_mc_samples(X, self.cost_gp[0], self.bounds['c'][:,0])
         
         # Use MC Sampling to get the expected costs of unmemoized stages
         stage_costs = None
@@ -121,7 +121,10 @@ class CArBO(AnalyticAcquisitionFunction):
         all_cost_obj = []
         for i, cost_model in enumerate(self.cost_gp):
             hyp_indexes = self.params['h_ind'][i]
-            cost_posterior = cost_model.posterior(X[:,hyp_indexes])
+            if self.acq_type == 'CArBO':
+                cost_posterior = cost_model.posterior(X)
+            else:
+                cost_posterior = cost_model.posterior(X[:,hyp_indexes])
             cost_samples = self.cost_sampler(cost_posterior)
             cost_samples = cost_samples.to(DEVICE)
             cost_samples = cost_samples.max(dim=2)[0]

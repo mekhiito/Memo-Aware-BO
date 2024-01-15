@@ -1,6 +1,16 @@
-from EEIPU import EEIPU
+from acquisition_funcs.EEIPU.EEIPU import EEIPU
+import torch
+from functions.processing_funcs import normalize, unnormalize, standardize, unstandardize, get_gen_bounds, generate_prefix_pool
+from functions.iteration_functions import get_gp_models, get_multistage_cost_models, get_inv_cost_models
+from optimize_mem_acqf import optimize_acqf_by_mem
+from botorch.sampling import SobolQMCNormalSampler
+from botorch.acquisition.objective import IdentityMCObjective
 
 def EEIPU_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+    
+    prefix_pool = None
+    if params['use_pref_pool']:
+        prefix_pool = generate_prefix_pool(X, y, acqf_str, params)
     
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])
@@ -9,11 +19,7 @@ def EEIPU_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
     
     norm_bounds = get_gen_bounds(params['h_ind'], params['normalization_bounds'], bound_type='norm')
     
-    prefix_pool = None
-    if params['use_pref_pool']:
-        prefix_pool = generate_prefix_pool(train_x, acqf_str, params)
-    
-    cost_mll, cost_gp = get_cost_models(train_x, c, iter, params['h_ind'], bounds, acqf_str)
+    cost_mll, cost_gp = get_multistage_cost_models(train_x, c, iter, params['h_ind'], bounds, acqf_str)
     inv_cost_mll, inv_cost_gp = get_inv_cost_models(train_x, c_inv, iter, params['h_ind'], bounds, acqf_str)
         
     cost_sampler = SobolQMCNormalSampler(sample_shape=params['cost_samples'], seed=params['rand_seed'])

@@ -20,8 +20,6 @@ def MS_BO_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
         iter=iter, params=params, seed=params['rand_seed'])
     
     E_c, E_inv_c, E_y = [0], torch.tensor([0]), 0
-    E_c = acqf.compute_expected_cost(new_x)
-    E_inv_c = acqf.compute_expected_inverse_cost(new_x[:, None, :])
 
     # new_x = unnormalize(new_x, bounds=bounds['x_cube'])
     

@@ -1,5 +1,4 @@
 from optimizer.optimize_acqf_funcs import optimize_acqf
-from functions import get_random_observations
 from itertools import chain
 import torch
 
