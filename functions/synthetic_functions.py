@@ -1,3 +1,9 @@
+import torch
+import random
+from botorch.test_functions import Beale, Branin, Hartmann, StyblinskiTang, Rosenbrock, Levy, Ackley,HolderTable, Michalewicz
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 SYNTHETIC_FUNCTIONS = {
     # Stage 1
     'branin2': Branin(negate=True, bounds=[[0,10], [0,10]]),

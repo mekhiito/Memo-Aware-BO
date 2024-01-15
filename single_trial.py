@@ -1,5 +1,7 @@
 from json_reader import read_json
-from functions import generate_input_data, generate_ei_input_data, F, Cost_F, get_gen_bounds, get_dataset_bounds
+from functions.processing_funcs import get_gen_bounds, get_dataset_bounds, get_initial_data
+from functions.synthetic_functions import F, Cost_F
+from functions.iteration_functions import iteration_logs
 from LaMBO.MSET import MSET, Node
 from single_iteration import bo_iteration
 import numpy as np
@@ -30,7 +32,7 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
-        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=eta, iter=iteration, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, consumed_budget=cum_cost, params=params)
         
         new_y = F(new_x, params).unsqueeze(-1)
         new_c = Cost_F(new_x, params)

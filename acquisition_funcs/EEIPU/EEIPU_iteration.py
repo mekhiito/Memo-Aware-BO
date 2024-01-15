@@ -3,6 +3,8 @@ import torch
 from functions.processing_funcs import normalize, unnormalize, standardize, unstandardize, get_gen_bounds, generate_prefix_pool
 from functions.iteration_functions import get_gp_models
 from optimize_mem_acqf import optimize_acqf_by_mem
+from botorch.sampling import SobolQMCNormalSampler
+from botorch.acquisition.objective import IdentityMCObjective
 
 def EEIPU_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
     
