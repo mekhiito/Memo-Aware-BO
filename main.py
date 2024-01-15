@@ -12,6 +12,7 @@ import botorch
 from optimizer.optimize_acqf_funcs import optimize_acqf, _optimize_acqf_batch, gen_candidates_scipy, gen_batch_initial_conditions
 from json_reader import read_json
 from single_trial import bo_trial
+from taylor_experiments import taylor_trial
 import torch
 import random
 import numpy as np
