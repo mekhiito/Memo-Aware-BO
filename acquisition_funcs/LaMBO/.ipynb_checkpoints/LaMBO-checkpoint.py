@@ -52,7 +52,7 @@ class LaMBO:
     
         return mset, root
     
-    def get_subtree_arms(self, root, prev_arm_idx, prev_h):
+    def get_subtree_arms(self, root, prev_h, prev_arm_idx):
         
         node = copy.deepcopy(root)
         curr_depth = 0
@@ -78,7 +78,7 @@ class LaMBO:
         
         arm_idx = random.choices(valid_arm_choices, weights=valid_probs)[0]
     
-        return leaves[arm_idx], arm_idx
+        return torch.tensor(leaves[arm_idx], device=DEVICE), arm_idx
     
     def update_loss_estimators(self, loss, root, probs, arm_idx, sigma, H, acq_value):
         loss[arm_idx][0] = acq_value
@@ -170,15 +170,15 @@ class LaMBO:
         X_tree, Y_tree, C_tree, C_inv_tree, best_f = self.build_datasets(acqf, mset.leaves, trial_number, n_leaves, params)
     
         H = sum(depths)
-        h = H -1
+        h = H
         
         arm_idx = random.randint(0, n_leaves)
         
         loss = np.zeros([n_leaves, H])
         
-        best_fs = -1e9
+        best_f = -1e9
         for idx in range(arm_idx):
-            best_fs = max(best_fs, Y_tree[idx].max().item())
+            best_f = max(best_f, Y_tree[idx].max().item())
             
         total_budget = params['total_budget']
         cum_cost = 0
@@ -187,7 +187,6 @@ class LaMBO:
         for jj in range(2):
                 
             leaf_bounds = mset.leaves
-    
             input_bounds, arm_idx = self.select_arm(root, leaf_bounds, probs, h, arm_idx, n_leaves)
     
             X, Y, C, C_inv = X_tree[arm_idx], Y_tree[arm_idx], C_tree[arm_idx], C_inv_tree[arm_idx]
@@ -217,10 +216,10 @@ class LaMBO:
             
             new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
             
-            X[arm_idx] = torch.cat([X[arm_idx], new_x])
-            Y[arm_idx] = torch.cat([Y[arm_idx], new_y])
-            C[arm_idx] = torch.cat([C[arm_idx], new_c])
-            C_inv[arm_idx] = torch.cat([C_inv[arm_idx], inv_cost])
+            X_tree[arm_idx] = torch.cat([X_tree[arm_idx], new_x])
+            Y_tree[arm_idx] = torch.cat([Y_tree[arm_idx], new_y])
+            C_tree[arm_idx] = torch.cat([C_tree[arm_idx], new_c])
+            C_inv_tree[arm_idx] = torch.cat([C_inv_tree[arm_idx], inv_cost])
             
             best_f = max(best_f, new_y.item())
     
@@ -230,6 +229,4 @@ class LaMBO:
             iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
             
             # wandb.log(log)
-    
-            best_fs.append(best_f)
         

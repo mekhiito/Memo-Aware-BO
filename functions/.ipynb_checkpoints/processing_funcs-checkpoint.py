@@ -50,7 +50,7 @@ def get_initial_data(n, bounds=None, seed=0, acqf=None, params=None):
     y = F(X, params).unsqueeze(-1)
     c = Cost_F(X, params)
 
-    if acqf not in ['EEIPU', 'MS_CArBO']:
+    if acqf not in ['EEIPU', 'MS_CArBO', 'LaMBO', 'MS_BO']:
         c = c.sum(dim=1).unsqueeze(-1)
 
     c_inv = 1/c.sum(dim=1)
@@ -167,6 +167,7 @@ def generate_ei_input_data(N=None, bounds=None, seed=0, acqf=None, params=None):
 
 def initialize_GP_model(X, y, params=None):
     X_, y_ = X + 0, y + 0
+    X_, y_ = X_.double(), y_.double()
     gp_model = SingleTaskGP(X_, y_).to(X_)
     gp_model = gp_model.to(DEVICE)
     mll = ExactMarginalLogLikelihood(gp_model.likelihood, gp_model).to(DEVICE)
