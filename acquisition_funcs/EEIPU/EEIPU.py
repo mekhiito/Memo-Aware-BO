@@ -8,6 +8,7 @@ from typing import Union, Optional, Dict, Any
 from torch.distributions import Normal
 from torch import Tensor
 import torch
+import copy
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -20,7 +21,6 @@ class EEIPU(AnalyticAcquisitionFunction):
         self,
         model: Model,
         cost_gp: Model,
-        inv_cost_gp: Model,
         best_f: Union[float, Tensor],
         cost_sampler: Optional[MCSampler] = None,
         acq_objective: Optional[MCAcquisitionObjective] = None,
@@ -28,6 +28,7 @@ class EEIPU(AnalyticAcquisitionFunction):
         maximize: bool = True,
         acq_type: str = "",
         unstandardizer = None,
+        normalizer = None,
         unnormalizer = None,
         bounds: Tensor = None,
         iter: int =None,
@@ -60,11 +61,11 @@ class EEIPU(AnalyticAcquisitionFunction):
 
         self.register_buffer("best_f", best_f)
         self.cost_gp = cost_gp
-        self.inv_cost_gp = inv_cost_gp
         self.cost_sampler = cost_sampler
         self.acq_obj = acq_objective
         self.acq_type = acq_type
         self.unstandardizer = unstandardizer
+        self.normalizer = normalizer
         self.unnormalizer = unnormalizer
         self.bounds = bounds
         self.params = params
@@ -134,17 +135,17 @@ class EEIPU(AnalyticAcquisitionFunction):
         
         stage_costs = stage_costs.sum(dim=-1)
         
-        sample_var = stage_costs.var(dim=0)
         sample_mean = stage_costs.mean(dim=0)
+        sample_var = stage_costs.var(dim=0)
 
         inv_cost = 1/sample_mean + sample_var/sample_mean**3
         return inv_cost
 
-    def compute_ground_truth(self, X: Tensor, alpha_epsilon=False) -> Tensor:
-        stage_costs = self.get_mc_samples(X, self.inv_cost_gp, self.bounds['1/c'])
+    # def compute_ground_truth(self, X: Tensor, alpha_epsilon=False) -> Tensor:
+    #     stage_costs = self.get_mc_samples(X, self.inv_cost_gp, self.bounds['1/c'])
         
-        ground_truth = stage_costs.mean(dim=0)
-        return ground_truth
+    #     ground_truth = stage_costs.mean(dim=0)
+    #     return ground_truth
 
     def compute_expected_cost(self, X: Tensor) -> Tensor:
 
@@ -189,8 +190,10 @@ class EEIPU(AnalyticAcquisitionFunction):
     @t_batch_mode_transform(expected_q=1, assert_output_shape=False)
     def forward(self, X: Tensor, delta: int = 0, curr_iter: int = -1) -> Tensor:
 
+        X_ = self.normalizer(X, bounds=self.bounds['x_cube'])
+
         ei = ExpectedImprovement(model=self.model, best_f=self.best_f)
-        ei_x = ei(X)
+        ei_x = ei(X_)
 
         total_budget = self.params['total_budget'] + 0
 
@@ -199,6 +202,6 @@ class EEIPU(AnalyticAcquisitionFunction):
 
         cost_cool = remaining / init_budget
      
-        inv_cost =  self.compute_expected_inverse_cost(X, delta=delta)
+        inv_cost =  self.compute_taylor_expansion(X_, delta=delta)
 
         return ei_x * (inv_cost**cost_cool)

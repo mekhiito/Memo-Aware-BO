@@ -184,8 +184,6 @@ def generate_prefix_pool(X, Y, acqf, params):
     prefix_pool = [[]]
     if acqf not in ['EEIPU', 'EIPU-MEMO']:
         return prefix_pool
-
-    print(f'We are generating a prefix pool from {x.shape[0]} data point. We have extracted a data pool of size {len(data_pool)}')
         
     for i, (param_config, obj) in enumerate(data_pool):
         
@@ -201,8 +199,6 @@ def generate_prefix_pool(X, Y, acqf, params):
             prefix.append(list(param_config[stage_params].cpu().detach().numpy()))
             
         prefix_pool.append(copy.deepcopy(prefix))
-        
-    print(f'Generated {len(prefix_pool)} prefixes out of {len(data_pool)} datapoints')
             
     return prefix_pool
 

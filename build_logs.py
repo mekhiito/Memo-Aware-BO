@@ -2,7 +2,7 @@ import glob
 import os
 import pandas as pd
 
-csv_file_name = 'high_dim_exp_logs_461073_eeipu.csv'
+csv_file_name = 'icml_first_test.csv'
     
 read_dir_name = 'syn_logs_'
 save_dir_name = 'final_csv_logs'

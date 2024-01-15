@@ -174,6 +174,8 @@ class LaMBO:
         
         arm_idx = random.randint(0, n_leaves)
         
+        print(f'Initial Data has {X_tree[arm_idx].shape} points for {acqf} Trial {trial_number}')
+        
         loss = np.zeros([n_leaves, H])
         
         best_f = -1e9
@@ -184,7 +186,7 @@ class LaMBO:
         cum_cost = 0
         iteration = 0
         
-        for jj in range(2):
+        while cum_cost < total_budget:
                 
             leaf_bounds = mset.leaves
             input_bounds, arm_idx = self.select_arm(root, leaf_bounds, probs, h, arm_idx, n_leaves)
@@ -227,6 +229,9 @@ class LaMBO:
             cum_cost += sum_stages
 
             iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
+            iteration += 1
+        
+        print(f'Initial Data has {X_tree[arm_idx].shape} points for {acqf} Trial {trial_number}')
             
             # wandb.log(log)
         

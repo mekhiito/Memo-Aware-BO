@@ -1,6 +1,7 @@
 from optimizer.optimize_acqf_funcs import optimize_acqf
 from itertools import chain
 import torch
+import copy
 
 def update_candidate(candidate, acqf_val, best_candidate, best_acqf_val, num_memoised, delta):
     if acqf_val > best_acqf_val:
@@ -12,7 +13,7 @@ def optimize_acqf_by_mem(acqf=None, acqf_str=None, bounds=None, iter=None, param
     
     best_candidate, best_acqf_val = -torch.inf, -torch.inf
     for prefix in prefix_pool:
-        cand_generation_bounds = bounds + 0
+        cand_generation_bounds = copy.deepcopy(bounds)
         pref_stages = len(prefix)
         prefix = list(chain(*prefix))
         

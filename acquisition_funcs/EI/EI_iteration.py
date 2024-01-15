@@ -5,7 +5,7 @@ from optimize_mem_acqf import optimize_acqf_by_mem
 import torch
 
 def EI_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
-    
+
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])
     

@@ -5,7 +5,7 @@ from functions.iteration_functions import iteration_logs
 import torch
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-MS_ACQFS = ['EEIPU', 'MS_CArBO', 'LaMBO', 'MS_BO']
+MS_ACQFS = ['EEIPU', 'LaMBO', 'MS_CArBO', 'MS_BO']
 
 def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
 
@@ -18,18 +18,18 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     
     X, Y, C, C_inv = get_initial_data(params['n_init_data'], bounds=input_bounds, seed=trial_number*10000, acqf=acqf, params=params)
     params['n_init_data'] = X.shape[0]
-    print(f'Initial Data has {X.shape} points')
+    print(f'Initial Data has {X.shape} points for {acqf} Trial {trial_number}')
     
     best_fs = [Y.max().item()]
     total_budget = params['total_budget']
     cum_cost = 0
     iteration = 0
     
-    for jj in range(1):
-    # while cum_cost < total_budget:
+    # for jj in range(1):
+    while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
-        new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, consumed_budget=cum_cost, params=params)
         
         new_y = F(new_x, params).unsqueeze(-1)
         new_c = Cost_F(new_x, params)
@@ -60,6 +60,9 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
         best_fs.append(best_f)
 
         iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
+
+    
+    print(f'Final Data has {X.shape} points for {acqf} Trial {trial_number}')
 
         
     return

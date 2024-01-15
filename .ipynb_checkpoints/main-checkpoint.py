@@ -19,7 +19,7 @@ import numpy as np
 def arguments():
     
     parser = ArgumentParser()
-    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["beale2", "hartmann3", "beale2", "ackley3", "branin2"])
+    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["beale2", "hartmann3", "beale2"])
     parser.add_argument("--init-eta", type=float, help="Initial ETA", default=1)
     parser.add_argument("--decay-factor", type=float, help="Decay factor", default=1)
     parser.add_argument("--cost-types", nargs="+", help="Cost types", default=[1,2,3])
@@ -72,18 +72,14 @@ if __name__=="__main__":
     params['MS_BO_iteration'] = MS_BO_iteration
 
     # Use this line to customize the initial budget_0 (only counted for the initial data generation)
-    params['budget_0'] = 2500
+    params['budget_0'] = 500
     
     # Use this line to customize the total optimization budget used by the BO process
-    params['total_budget'] = 8000
+    params['total_budget'] = 2000
 
     # Use this line to customize the number of optimizable hyperparameters per stage for this synthetic experiment
     
-    params_per_stage = [4, 6, 10, 7, 3]
-    
-    if args.acqf == 'MS_BO':
-        params['obj_funcs'] = [params['obj_funcs'][-1]]
-        params_per_stage = [params_per_stage[-1]]
+    params_per_stage = [3, 3, 3]
 
     params['h_ind'] = []
     i = 0
