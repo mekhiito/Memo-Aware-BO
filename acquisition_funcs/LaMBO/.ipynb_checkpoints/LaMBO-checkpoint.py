@@ -41,7 +41,7 @@ class LaMBO:
         return probs
     
     def build_tree(self, partitions, depths, last_stage_partition):
-        root = Node(None, 0)
+        root = Node(None, 0, 0)
         mset = MSET(partitions, depths, last_stage_partition)
         
         left = mset.ConstructMSET(root, 0, 0, 1, [], [[], []])
@@ -134,11 +134,12 @@ class LaMBO:
     
     def build_datasets(self, acqf, leaf_bounds, trial_number, n_leaves, params):
     
-        X_tree, Y_tree, C_tree, C_inv_tree = [], [], []
+        X_tree, Y_tree, C_tree, C_inv_tree = [], [], [], []
         best_f = -1e9
         for leaf in range(n_leaves):
             x, y, c, c_inv = get_initial_data(
-                params['lambo_init_data'], bounds=leaf_bounds[leaf], seed=trial_number*10000, acqf=acqf, params=params)
+                params['n_init_data'], bounds=leaf_bounds[leaf], 
+                seed=trial_number*10000, acqf=acqf, params=params)
             
             X_tree.append(x)
             Y_tree.append(y)
@@ -161,29 +162,29 @@ class LaMBO:
         probs = self.get_pdf(n_leaves)
 
         partitions, last_stage_partition = self.build_partitions(global_input_bounds, h_ind, n_stages)
-        
-        mset, root = self.build_tree(partitions, depths, last_stage_partition)
     
         depths = [ 1 for i in range(n_stages - 1) ]
-    
+        
+        mset, root = self.build_tree(partitions, depths, last_stage_partition)
+
         X_tree, Y_tree, C_tree, C_inv_tree, best_f = self.build_datasets(acqf, mset.leaves, trial_number, n_leaves, params)
     
         H = sum(depths)
-        h = H + 0
+        h = H -1
         
-        arm_idx = random.randint(n_leaves)
+        arm_idx = random.randint(0, n_leaves)
         
         loss = np.zeros([n_leaves, H])
         
         best_fs = -1e9
-        for idx in arm_idx:
-            best_fs = max(best_fs, Y[idx].max().item())
+        for idx in range(arm_idx):
+            best_fs = max(best_fs, Y_tree[idx].max().item())
             
         total_budget = params['total_budget']
         cum_cost = 0
         iteration = 0
         
-        while cum_cost < total_budget:
+        for jj in range(2):
                 
             leaf_bounds = mset.leaves
     

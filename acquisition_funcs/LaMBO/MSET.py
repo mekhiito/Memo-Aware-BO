@@ -52,15 +52,15 @@ class MSET:
             curr_partition.append(hp_partitions[p_idx])
 
         for ps in curr_partition:
-            bounds[0].append(ps[0])
-            bounds[1].append(ps[1])
+            bounds[0].append(ps[0].item())
+            bounds[1].append(ps[1].item())
 
         return bounds
 
     def create_leaf(self, node, leaf_partition, bounds):
         for ps in self.last_stage_bounds:
-            bounds[0].append(ps[0])
-            bounds[1].append(ps[1])
+            bounds[0].append(ps[0].item())
+            bounds[1].append(ps[1].item())
         # bounds = torch.tensor(bounds, device=DEVICE, dtype=torch.double)
         node.add_value(bounds)
         node.add_leaf_partition(leaf_partition)
