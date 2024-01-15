@@ -2,13 +2,7 @@ from json_reader import read_json
 from functions.processing_funcs import get_gen_bounds, get_dataset_bounds, get_initial_data
 from functions.synthetic_functions import F, Cost_F
 from functions.iteration_functions import iteration_logs
-from LaMBO.MSET import MSET, Node
-from single_iteration import bo_iteration
-import numpy as np
-from copy import deepcopy
 import torch
-import csv
-from typing import Iterable
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 MS_ACQFS = ['EEIPU', 'MS_CArBO', 'LaMBO', 'MS_BO']
@@ -29,7 +23,8 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     cum_cost = 0
     iteration = 0
     
-    while cum_cost < total_budget:
+    for jj in range(1):
+    # while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
         new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, consumed_budget=cum_cost, params=params)

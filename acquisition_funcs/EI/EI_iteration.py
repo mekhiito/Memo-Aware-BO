@@ -1,5 +1,5 @@
 from botorch.acquisition import ExpectedImprovement
-from functions.processing_funcs import normalize, unnormalize, standardize, get_gen_bounds
+from functions.processing_funcs import normalize, standardize, get_gen_bounds
 from functions.iteration_functions import get_gp_models
 from optimize_mem_acqf import optimize_acqf_by_mem
 import torch

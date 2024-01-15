@@ -1,4 +1,4 @@
-from botorch.acquisition.objective import  IdentityMCObjective, MCAcquisitionObjective, PosteriorTransform
+from botorch.acquisition.objective import  MCAcquisitionObjective, PosteriorTransform
 from botorch.acquisition.analytic import AnalyticAcquisitionFunction
 from botorch.acquisition import ExpectedImprovement
 from botorch.sampling import MCSampler

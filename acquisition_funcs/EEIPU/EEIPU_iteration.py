@@ -1,4 +1,4 @@
-from EEIPU import EEIPU
+from acquisition_funcs.EEIPU.EEIPU import EEIPU
 import torch
 from functions.processing_funcs import normalize, unnormalize, standardize, unstandardize, get_gen_bounds, generate_prefix_pool
 from functions.iteration_functions import get_gp_models

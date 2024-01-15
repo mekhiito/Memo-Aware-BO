@@ -1,7 +1,7 @@
 from CArBO import CArBO
 import torch
 from functions.processing_funcs import normalize, unnormalize, standardize, unstandardize, get_gen_bounds
-from functions.iteration_functions import get_gp_models
+from functions.iteration_functions import get_gp_models, get_multistage_cost_models, get_inv_cost_models
 from optimize_mem_acqf import optimize_acqf_by_mem
 from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
@@ -16,7 +16,7 @@ def bo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
     norm_bounds = get_gen_bounds(params['h_ind'], params['normalization_bounds'], bound_type='norm')
 
     
-    cost_mll, cost_gp = get_cost_models(train_x, c, iter, params['h_ind'], bounds, acqf_str)
+    cost_mll, cost_gp = get_multistage_cost_models(train_x, c, iter, params['h_ind'], bounds, acqf_str)
     inv_cost_mll, inv_cost_gp = get_inv_cost_models(train_x, c_inv, iter, params['h_ind'], bounds, acqf_str)
         
     cost_sampler = SobolQMCNormalSampler(sample_shape=params['cost_samples'], seed=params['rand_seed'])
