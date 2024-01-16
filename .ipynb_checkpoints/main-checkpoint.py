@@ -27,7 +27,7 @@ def arguments():
     parser.add_argument("--warmup-eta", type=float, help="Warm up", default=1e-2)
     parser.add_argument("--trial-num", type=int, help="Trial number")
     parser.add_argument("--exp-group", type=str, help="Group ID")
-    parser.add_argument("--acqf", type=str, help="Acquisition function", choices=['EEIPU', 'EIPU', 'EIPU-MEMO', 'EI', 'CArBO', 'EIPS', 'MS_CArBO', 'MS_BO', 'LaMBO'])
+    parser.add_argument("--acqf", type=str, help="Acquisition function", choices=['EEIPU', 'EIPU', 'EIPU-MEMO', 'EI', 'CArBO', 'EIPS', 'MS_CArBO', 'MS_BO', 'LaMBO', 'Taylor'])
     
     params:dict = read_json("params")
     
@@ -73,10 +73,10 @@ if __name__=="__main__":
     params['MS_BO_iteration'] = MS_BO_iteration
 
     # Use this line to customize the initial budget_0 (only counted for the initial data generation)
-    params['budget_0'] = 2500
+    params['budget_0'] = 200000
     
     # Use this line to customize the total optimization budget used by the BO process
-    params['total_budget'] = 8000
+    params['total_budget'] = 200000
 
     # Use this line to customize the number of optimizable hyperparameters per stage for this synthetic experiment
     
@@ -102,6 +102,8 @@ if __name__=="__main__":
         params['lambo_eta'] = 0.9
         lambo = LaMBO(params['lambo_eta'])
         lambo.lambo_trial(trial_number=trial, acqf=args.acqf, wandb=wandb, params=params)
+    elif args.acqf == 'Taylor':
+        taylor_trial(trial_number=trial, acqf = 'EEIPU', params=params)
     else:
         bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], wandb=wandb, params=params)
     

@@ -142,6 +142,7 @@ class EEIPU(AnalyticAcquisitionFunction):
 
     def compute_ground_truth(self, X: Tensor, alpha_epsilon=False) -> Tensor:
         stage_costs = self.get_mc_samples(X, self.inv_cost_gp, self.bounds['1/c'])
+        stage_costs = stage_costs.sum(dim=-1)
         
         ground_truth = stage_costs.mean(dim=0)
         return ground_truth

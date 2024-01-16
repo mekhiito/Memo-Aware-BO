@@ -39,7 +39,7 @@
             7
         ]
     ],
-    "n_init_data": 10000,
+    "n_init_data": 1000,
     "prefix_thresh": 10000000,
     "warmup_iters": 10,
     "use_pref_pool": 1,
