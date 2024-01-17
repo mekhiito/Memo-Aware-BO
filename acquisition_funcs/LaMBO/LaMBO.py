@@ -136,8 +136,9 @@ class LaMBO:
     
         X_tree, Y_tree, C_tree, C_inv_tree = [], [], [], []
         best_f = -1e9
+        init_cost = 0
         for leaf in range(n_leaves):
-            x, y, c, c_inv = get_initial_data(
+            x, y, c, c_inv, cost0 = get_initial_data(
                 params['n_init_data'], bounds=leaf_bounds[leaf], 
                 seed=trial_number*10000, acqf=acqf, params=params)
             
@@ -145,9 +146,11 @@ class LaMBO:
             Y_tree.append(y)
             C_tree.append(c)
             C_inv_tree.append(c_inv)
+            
+            init_cost += cost0
             best_f = max(best_f, y.max().item())
     
-        return X_tree, Y_tree, C_tree, C_inv_tree, best_f
+        return X_tree, Y_tree, C_tree, C_inv_tree, init_cost, best_f
     
     def lambo_trial(self, trial_number, acqf, wandb, params=None):
         
@@ -167,7 +170,7 @@ class LaMBO:
         
         mset, root = self.build_tree(partitions, depths, last_stage_partition)
 
-        X_tree, Y_tree, C_tree, C_inv_tree, best_f = self.build_datasets(acqf, mset.leaves, trial_number, n_leaves, params)
+        X_tree, Y_tree, C_tree, C_inv_tree, init_cost, best_f = self.build_datasets(acqf, mset.leaves, trial_number, n_leaves, params)
     
         H = sum(depths)
         h = H
@@ -183,7 +186,7 @@ class LaMBO:
             best_f = max(best_f, Y_tree[idx].max().item())
             
         total_budget = params['total_budget']
-        cum_cost = 0
+        cum_cost = init_cost
         iteration = 0
         
         while cum_cost < total_budget:

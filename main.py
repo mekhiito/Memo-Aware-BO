@@ -19,10 +19,10 @@ import numpy as np
 def arguments():
     
     parser = ArgumentParser()
-    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["beale2", "hartmann3", "beale2"])
+    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["branin2", "ackley3", "beale2", "hartmann3"])
     parser.add_argument("--init-eta", type=float, help="Initial ETA", default=1)
     parser.add_argument("--decay-factor", type=float, help="Decay factor", default=1)
-    parser.add_argument("--cost-types", nargs="+", help="Cost types", default=[1,2,3])
+    parser.add_argument("--cost-types", nargs="+", help="Cost types", default=[1,2,3,2])
     parser.add_argument("--warmup-eta", type=float, help="Warm up", default=1e-2)
     parser.add_argument("--trial-num", type=int, help="Trial number")
     parser.add_argument("--exp-group", type=str, help="Group ID")
@@ -71,15 +71,9 @@ if __name__=="__main__":
     params['EIPS_iteration'] = EIPS_iteration
     params['MS_BO_iteration'] = MS_BO_iteration
 
-    # Use this line to customize the initial budget_0 (only counted for the initial data generation)
-    params['budget_0'] = 500
+    params['total_budget'] = 1500
     
-    # Use this line to customize the total optimization budget used by the BO process
-    params['total_budget'] = 2000
-
-    # Use this line to customize the number of optimizable hyperparameters per stage for this synthetic experiment
-    
-    params_per_stage = [3, 3, 3]
+    params_per_stage = [2, 3, 2, 3]
 
     params['h_ind'] = []
     i = 0
@@ -89,7 +83,6 @@ if __name__=="__main__":
             stage.append(i)
             i += 1
         params['h_ind'].append(stage)
-    # params['h_ind'] = [[0,1,2,3], [4,5,6,7,8,9], [10,11,12,13,14,15,16,17,18,19], [20,21,22,23,24,25,26], [27,28,29]]
     
     trial = args.trial_num
 

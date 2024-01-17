@@ -12,19 +12,22 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     trial_logs = read_json('logs')
     bound_list = read_json('bounds')
     
-    chosen_functions, h_ind, total_budget = params['obj_funcs'], params['h_ind'], params['total_budget']
+    chosen_functions, h_ind = params['obj_funcs'], params['h_ind']
 
     input_bounds = get_gen_bounds(h_ind, bound_list, funcs=chosen_functions)
     
-    X, Y, C, C_inv = get_initial_data(params['n_init_data'], bounds=input_bounds, seed=trial_number*10000, acqf=acqf, params=params)
-    params['n_init_data'] = X.shape[0]
-    print(f'Initial Data has {X.shape} points for {acqf} Trial {trial_number}')
+    X, Y, C, C_inv, init_cost = get_initial_data(params['n_init_data'], bounds=input_bounds, seed=trial_number*10000, acqf=acqf, params=params)
     
-    best_fs = [Y.max().item()]
+    params['budget_0'] = init_cost
+    # params['total_budget'] = 10*init_cost
+    
+    best_f = Y.max().item()
     total_budget = params['total_budget']
-    cum_cost = 0
-    iteration = 0
+    cum_cost = init_cost
     
+    print(f'{acqf} at Trial {trial_number} used an initial cost of {init_cost:0,.2f} out of {total_budget:0,.2f}')
+    iteration = 0
+    # print(f'The total budget is {total_budget}')
     # for jj in range(1):
     while cum_cost < total_budget:
         
@@ -36,6 +39,12 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
         inv_cost = torch.tensor([1/new_c.sum()]).unsqueeze(-1)
         
         new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
+
+        if trial_number == 1:
+            s = "BETTER than" if new_y.item() > best_f else "WORSE than"
+            r = ":)" if new_y.item() > best_f else " :("
+            m = f"Memoized {n_memoised} stages" if (new_y.item() > best_f and acqf == 'EEIPU' and n_memoised > 0) else ''
+            print(f"{acqf} New Y {new_y.item():0,.2f} {s} {best_f:0,.2f} {r} Cost = {new_c.sum().item():0,.2f}. {m}\n\n")
 
         if acqf not in MS_ACQFS:
             new_c = new_c.sum(dim=1).unsqueeze(-1)
@@ -57,12 +66,12 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
         
         # wandb.log(log)
 
-        best_fs.append(best_f)
+        # best_fs.append(best_f)
 
         iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
 
     
-    print(f'Final Data has {X.shape} points for {acqf} Trial {trial_number}')
+    print(f'{acqf} Trial {trial_number} Final Data has {X.shape} datapoints with best_f {best_f:0,.2f}')
 
         
     return

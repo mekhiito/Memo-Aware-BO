@@ -149,6 +149,8 @@ class EEIPU(AnalyticAcquisitionFunction):
 
     def compute_expected_cost(self, X: Tensor) -> Tensor:
 
+        # Check on GPT if this is the proper sampling method
+        # Also, test the accuracy of cost expectation
         all_cost_obj = []
         for i, cost_model in enumerate(self.cost_gp):
             hyp_indexes = self.params['h_ind'][i]
@@ -157,8 +159,8 @@ class EEIPU(AnalyticAcquisitionFunction):
             cost_samples = cost_samples.to(DEVICE)
             cost_samples = cost_samples.max(dim=2)[0]
             
-            cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,i])
-            cost_samples = torch.exp(cost_samples)
+            # cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,i])
+            # cost_samples = torch.exp(cost_samples)
             cost_obj = self.acq_obj(cost_samples)
             all_cost_obj.append(cost_obj.mean(dim=0).item())
         return all_cost_obj
@@ -178,7 +180,7 @@ class EEIPU(AnalyticAcquisitionFunction):
         u = (mean - self.best_f.expand_as(mean)) / sigma
         if not self.maximize:
             u = -u
-            
+
         normal = Normal(torch.zeros_like(u), torch.ones_like(u))
         ucdf = normal.cdf(u)
         updf = torch.exp(normal.log_prob(u))
@@ -190,18 +192,18 @@ class EEIPU(AnalyticAcquisitionFunction):
     @t_batch_mode_transform(expected_q=1, assert_output_shape=False)
     def forward(self, X: Tensor, delta: int = 0, curr_iter: int = -1) -> Tensor:
 
-        X_ = self.normalizer(X, bounds=self.bounds['x_cube'])
+        # X_ = self.normalizer(X, bounds=self.bounds['x_cube'])
 
-        ei = ExpectedImprovement(model=self.model, best_f=self.best_f)
-        ei_x = ei(X_)
+        # ei = ExpectedImprovement(model=self.model, best_f=self.best_f)
+        ei_x = self.custom_EI(X)
 
         total_budget = self.params['total_budget'] + 0
 
         remaining = total_budget - self.consumed_budget
-        init_budget = total_budget
+        init_budget = total_budget - self.params['budget_0']
 
         cost_cool = remaining / init_budget
      
-        inv_cost =  self.compute_taylor_expansion(X_, delta=delta)
+        inv_cost =  self.compute_expected_inverse_cost(X, delta=delta)
 
         return ei_x * (inv_cost**cost_cool)

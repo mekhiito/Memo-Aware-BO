@@ -119,8 +119,8 @@ class EIPS(AnalyticAcquisitionFunction):
         cost_samples = cost_samples.to(DEVICE)
         cost_samples = cost_samples.max(dim=2)[0]
         
-        cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,0])
-        cost_samples = torch.exp(cost_samples)
+        # cost_samples = self.unstandardizer(cost_samples, bounds=self.bounds['c'][:,0])
+        # cost_samples = torch.exp(cost_samples)
         cost_obj = self.acq_obj(cost_samples)
         all_cost_obj.append(cost_obj.mean(dim=0).item())
         return all_cost_obj
@@ -152,11 +152,11 @@ class EIPS(AnalyticAcquisitionFunction):
     @t_batch_mode_transform(expected_q=1, assert_output_shape=False)
     def forward(self, X: Tensor, delta: int = 0, curr_iter: int = -1) -> Tensor:
 
-        X_ = self.normalizer(X, bounds=self.bounds['x_cube'])
+        # X_ = self.normalizer(X, bounds=self.bounds['x_cube'])
 
         ei = ExpectedImprovement(model=self.model, best_f=self.best_f)
-        ei_x = ei(X_)
+        ei_x = ei(X)
     
-        inv_cost =  self.compute_expected_inverse_cost(X_)
+        inv_cost =  self.compute_expected_inverse_cost(X)
 
         return ei_x * inv_cost

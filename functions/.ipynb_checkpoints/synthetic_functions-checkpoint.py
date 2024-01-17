@@ -1,3 +1,9 @@
+import torch
+import random
+from botorch.test_functions import Beale, Branin, Hartmann, StyblinskiTang, Rosenbrock, Levy, Ackley,HolderTable, Michalewicz
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 SYNTHETIC_FUNCTIONS = {
     # Stage 1
     'branin2': Branin(negate=True, bounds=[[0,10], [0,10]]),
@@ -47,28 +53,15 @@ def stage_cost_func(X, dims=3, stage=1):
     for d in range(dims):
         random.seed(stage*100 + d)
         idx = random.randint(0,3)
-        scale, shift = random.randint(10, 50), random.randint(50, 100)
+        scale, shift = random.randint(5, 20), random.randint(10, 50)
         used_costs.append(strs[idx])
 
         cost += apply(funcs[idx], X[:,d], {'scale':scale, 'shift':shift, 'power':2})
-    cost = cost/(dims*500)
+    cost /= (500*dims)
 
     assert cost.min().item() > 0   
     cost = cost.unsqueeze(-1)
     return cost, used_costs
-
-def cost3D(X, ctype=1):
-    if ctype==1:
-        cost = (apply(logistic, X[:,0], {'scale':20, 'shift':50, 'slope':4}) + apply(sin, X[:,1], {'scale':30, 'shift':40}) + apply(cos, X[:,2], {'scale':5, 'shift':30}))
-    elif ctype==2:
-        cost =  (apply(sin, X[:,0], {'scale':20, 'shift':50}) + apply(logistic, X[:,2], {'slope':8,'scale':15,'shift':5}))
-    elif ctype==3:
-        cost = (apply(logistic, X[:,0], {'scale':22, 'shift':15, 'slope':3}) + apply(sin, X[:,1], {'scale':5, 'shift':10}) + apply(cos, X[:,2], {'scale':20, 'shift':25}))
-    else:
-        raise ValueError('Only cost types 1 to 3 acceptable')
-    assert cost.min().item() > 0
-    cost = cost.unsqueeze(-1)
-    return cost
 
 def F(X, params):
     
@@ -95,9 +88,9 @@ def Cost_F(X, params):
     n_stages = len(params['h_ind'])
     used_costs = []
     for stage in range(n_stages):
-        stage_c, used_f = stage_cost_func(X[:,params['h_ind'][stage]], dims=len(params['h_ind'][stage]), stage=stage)
+        stage_hp_idx = params['h_ind'][stage]
+        stage_c, used_f = stage_cost_func(X[:,stage_hp_idx], dims=len(params['h_ind'][stage]), stage=stage)
         costs = stage_c if costs == [] else torch.cat([costs, stage_c], dim=1)
-        used_costs += used_f
     # print(used_costs)
     costs = costs.to(DEVICE)
     return costs

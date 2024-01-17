@@ -8,7 +8,7 @@ from botorch.acquisition.objective import IdentityMCObjective
 
 def EIPS_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
 
-    train_x = normalize(X, bounds=bounds['x_cube'])
+    train_x = normalize(X, bounds=bounds['x'])
     train_y = standardize(y, bounds['y'])
     
     mll, gp_model = get_gp_models(train_x, train_y, iter, params=params)
@@ -17,17 +17,17 @@ def EIPS_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=No
     
     cost_mll, cost_gp = get_cost_model(train_x, c, iter, params['h_ind'], bounds, acqf_str)
         
-    cost_sampler = SobolQMCNormalSampler(sample_shape=params['cost_samples'], seed=params['rand_seed'])
+    cost_sampler = SobolQMCNormalSampler(sample_shape=params['cost_samples'], seed=iter)
     acqf = EIPS(acq_type=acqf_str, model=gp_model, cost_gp=cost_gp, best_f=train_y.max(),
                         cost_sampler=cost_sampler, acq_objective=IdentityMCObjective(), unstandardizer=unstandardize,
                         normalizer=normalize, unnormalizer=unnormalize, bounds=bounds, eta=decay,
                         consumed_budget=consumed_budget, iter=iter, params=params)
     
     new_x, n_memoised, acq_value = optimize_acqf_by_mem(
-        acqf=acqf, acqf_str=acqf_str, bounds=bounds['x'], 
-        iter=iter, params=params, seed=params['rand_seed'])
+        acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, 
+        iter=iter, params=params, seed=iter)
 
-    # new_x = unnormalize(new_x, bounds=bounds['x_cube'])
+    new_x = unnormalize(new_x, bounds=bounds['x'])
     
     
     return new_x, n_memoised, acq_value

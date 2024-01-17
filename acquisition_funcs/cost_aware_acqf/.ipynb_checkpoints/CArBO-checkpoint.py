@@ -163,18 +163,16 @@ class CArBO(AnalyticAcquisitionFunction):
     @t_batch_mode_transform(expected_q=1, assert_output_shape=False)
     def forward(self, X: Tensor, delta: int = 0, curr_iter: int = -1) -> Tensor:
 
-        X_ = self.normalizer(X, bounds=self.bounds['x_cube'])
-
-        ei = ExpectedImprovement(model=self.model, best_f=self.best_f)
-        ei_x = ei(X_)
+        # ei = ExpectedImprovement(model=self.model, best_f=self.best_f)
+        ei_x = self.custom_EI(X)
 
         total_budget = self.params['total_budget'] + 0
 
         remaining = total_budget - self.consumed_budget
-        init_budget = total_budget
+        init_budget = total_budget - self.params['budget_0']
 
         cost_cool = remaining / init_budget
     
-        inv_cost =  self.compute_expected_inverse_cost(X_)
+        inv_cost =  self.compute_expected_inverse_cost(X)
 
         return ei_x * (inv_cost**cost_cool)

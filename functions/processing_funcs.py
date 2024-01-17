@@ -8,6 +8,7 @@ from botorch.models import SingleTaskGP
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+MS_ACQFS = ['EEIPU', 'MS_CArBO', 'LaMBO', 'MS_BO']
 
 def assert_positive_costs(cost):
     try:
@@ -46,18 +47,18 @@ def unstandardize(data, bounds=None):
 
 def get_initial_data(n, bounds=None, seed=0, acqf=None, params=None):
 
-    X = generate_input_data(N=n, bounds=bounds, seed=seed, acqf=acqf, params=params)
+    X, init_cost = generate_input_data(N=n, bounds=bounds, seed=seed, acqf=acqf, params=params)
     y = F(X, params).unsqueeze(-1)
     c = Cost_F(X, params)
 
-    if acqf not in ['EEIPU', 'MS_CArBO', 'LaMBO', 'MS_BO']:
+    if acqf not in MS_ACQFS:
         c = c.sum(dim=1).unsqueeze(-1)
 
     c_inv = 1/c.sum(dim=1)
     c_inv = c_inv.to(DEVICE)
     c_inv = c_inv.unsqueeze(-1)
     
-    return X, y, c, c_inv
+    return X, y, c, c_inv, init_cost
     
 def get_gen_bounds(param_idx, func_bounds, funcs=None, bound_type=''):
     lo_bounds, hi_bounds = [], []
@@ -131,9 +132,10 @@ def find_closest_cand(X, cand):
 def generate_input_data(N=None, bounds=None, seed=0, acqf=None, params=None):
     
     X = []
-    init_cost = 1
-    i=0
-    while init_cost < params['budget_0']:
+    init_cost = 0
+    # i=0
+    # while init_cost < params['budget_0']:
+    for i in range(params['n_init_data']):
         torch.manual_seed(seed=seed+init_cost)
         candidates = get_random_observations(N, bounds, seed=seed+init_cost)
         costs = Cost_F(candidates, params)
@@ -151,19 +153,8 @@ def generate_input_data(N=None, bounds=None, seed=0, acqf=None, params=None):
         init_cost += cand_cost
         
         X = candidates if X == [] else torch.cat((X, candidates))
-        i += 1
-    return X
-
-def generate_ei_input_data(N=None, bounds=None, seed=0, acqf=None, params=None):
-    torch.manual_seed(seed=seed)
-    init_cost = 0
-    X = []
-    while init_cost < params['budget_0']:
-        candidate = get_random_observations(1, bounds)
-        cand_cost = Cost_F(candidate, params)
-        init_cost += cand_cost.sum().item() #sum(cost.item() for cost in cand_cost)
-        X = candidate if X == [] else torch.cat((X, candidate))
-    return X
+        # i += 1
+    return X, init_cost
 
 def initialize_GP_model(X, y, params=None):
     X_, y_ = X + 0, y + 0
@@ -177,28 +168,27 @@ def generate_prefix_pool(X, Y, acqf, params):
 
     first_idx = params['n_init_data']
     x, y = X[first_idx:], Y[first_idx:]
-    avg_obj = y.mean().item()
     
     data_pool = [(x[i, :], y[i].item()) for i in range(x.shape[0])]
     data_pool.sort(key = lambda d: d[1], reverse=True)
     prefix_pool = [[]]
+    
     if acqf not in ['EEIPU', 'EIPU-MEMO']:
         return prefix_pool
         
     for i, (param_config, obj) in enumerate(data_pool):
-        
-        if obj < avg_obj:
-            break
             
         prefix = []
         n_memoizable_stages = len(params['h_ind']) - 1
         
-        mem_stages = random.randint(1, n_memoizable_stages)
-        for j in range(mem_stages):
+        # mem_stages = random.randint(1, n_memoizable_stages)
+        for j in range(n_memoizable_stages):
             stage_params = params['h_ind'][j]
             prefix.append(list(param_config[stage_params].cpu().detach().numpy()))
-            
-        prefix_pool.append(copy.deepcopy(prefix))
+            prefix_pool.append(copy.deepcopy(prefix))
+
+        if i > 10:
+            break
             
     return prefix_pool
 
