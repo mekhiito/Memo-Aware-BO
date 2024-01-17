@@ -95,8 +95,14 @@ class LaMBO:
                 nominator += (probs[leaf_idx] * np.exp(-self.eta * (1 + sigma[height-1]) * loss[leaf_idx][height-1]))
         
             denominator = probs[node.leaf_ranges[0]:node.leaf_ranges[1]+1].sum()
+
+            print(f'To update losses, the nominator is {nominator} and the denominator is {denominator}')
+
+            eps = 1e-5
+            if denominator <= eps:
+                denominator = 1
             
-            loss_i = np.log( nominator / denominator )**(-int(1/self.eta))
+            loss_i = np.log( nominator / denominator )**(-1/self.eta)
     
             loss[arm_idx][height] = sigma[height] * loss_i
     
@@ -109,6 +115,11 @@ class LaMBO:
         denominator = 0
         for leaf_idx in range(n_leaves):
             denominator += probs[leaf_idx] * np.exp(-self.eta*loss[leaf_idx,:].sum())
+
+        print(f'To update probabilities, the nominator is {nominator} and the denominator is {denominator}')
+        eps = 1e-5
+        if denominator <= eps:
+            denominator = 1
     
         probs[arm_idx] = nominator/denominator
     
@@ -149,7 +160,7 @@ class LaMBO:
             
             init_cost += cost0
             best_f = max(best_f, y.max().item())
-    
+            
         return X_tree, Y_tree, C_tree, C_inv_tree, init_cost, best_f
     
     def lambo_trial(self, trial_number, acqf, wandb, params=None):
@@ -177,7 +188,7 @@ class LaMBO:
         
         arm_idx = random.randint(0, n_leaves)
         
-        print(f'Initial Data has {X_tree[arm_idx].shape} points for {acqf} Trial {trial_number}')
+        print(f'Initial Data has {X_tree[arm_idx].shape} points for {acqf} Trial {trial_number} with cost {init_cost}')
         
         loss = np.zeros([n_leaves, H])
         
@@ -186,10 +197,12 @@ class LaMBO:
             best_f = max(best_f, Y_tree[idx].max().item())
             
         total_budget = params['total_budget']
-        cum_cost = init_cost
+        cum_cost = 500
         iteration = 0
         
         while cum_cost < total_budget:
+
+            print(f'\n\n{loss}\n{probs}\n\n')
                 
             leaf_bounds = mset.leaves
             input_bounds, arm_idx = self.select_arm(root, leaf_bounds, probs, h, arm_idx, n_leaves)
@@ -198,7 +211,7 @@ class LaMBO:
     
             bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
     
-            new_x, n_memoised, E_c, E_inv_c, y_pred, acq_value = lambo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=self.eta, iter=iteration, consumed_budget=cum_cost, params=params)
+            new_x, n_memoised, acq_value = lambo_iteration(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=self.eta, iter=iteration, consumed_budget=cum_cost, params=params)
     
             sigma = np.array(random.choices([-1, 1], k=H))
             sigma[-1] = -1
@@ -218,6 +231,9 @@ class LaMBO:
             new_y = F(new_x, params).unsqueeze(-1)
             new_c = Cost_F(new_x, params)
             inv_cost = torch.tensor([1/new_c.sum()]).unsqueeze(-1)
+
+            if new_c.sum() > 50:
+                continue
             
             new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
             
@@ -233,8 +249,9 @@ class LaMBO:
 
             iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
             iteration += 1
-        
-        print(f'Initial Data has {X_tree[arm_idx].shape} points for {acqf} Trial {trial_number}')
+
+    
+        print(f'{acqf} Trial {trial_number} Final Data has {X_tree[arm_idx].shape} datapoints with best_f {best_f:0,.2f}')
             
             # wandb.log(log)
         

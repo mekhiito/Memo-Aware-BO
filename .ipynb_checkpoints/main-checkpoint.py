@@ -87,7 +87,7 @@ if __name__=="__main__":
     trial = args.trial_num
 
     if args.acqf == 'LaMBO':
-        params['lambo_eta'] = 0.9
+        params['lambo_eta'] = 1
         lambo = LaMBO(params['lambo_eta'])
         lambo.lambo_trial(trial_number=trial, acqf=args.acqf, wandb=wandb, params=params)
     else:
