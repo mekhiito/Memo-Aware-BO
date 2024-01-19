@@ -81,10 +81,13 @@ class LaMBO:
         return torch.tensor(leaves[arm_idx], device=DEVICE), arm_idx
     
     def update_loss_estimators(self, loss, root, probs, arm_idx, sigma, H, acq_value):
+        
         loss[arm_idx][0] = acq_value
         node = copy.deepcopy(root)
-        for height in range(1, H):
         
+        for height in range(1, H):
+
+            # Move to the child that has the current arm as a leaf
             if node.left.leaf_ranges[0] <= arm_idx <= node.left.leaf_ranges[1]:
                 node = node.left
             elif node.right.leaf_ranges[0] <= arm_idx <= node.right.leaf_ranges[1]:
@@ -96,11 +99,7 @@ class LaMBO:
         
             denominator = probs[node.leaf_ranges[0]:node.leaf_ranges[1]+1].sum()
 
-            print(f'To update losses, the nominator is {nominator} and the denominator is {denominator}')
-
-            eps = 1e-5
-            if denominator <= eps:
-                denominator = 1
+            # print(f'To update losses, the nominator is {nominator} and the denominator is {denominator}')
             
             loss_i = np.log( nominator / denominator )**(-1/self.eta)
     
@@ -109,27 +108,32 @@ class LaMBO:
         return loss
     
     def update_arm_probability(self, loss, probs, arm_idx, n_leaves):
-        
+            
         nominator = probs[arm_idx] * np.exp(-self.eta*loss[arm_idx,:].sum())
         
         denominator = 0
         for leaf_idx in range(n_leaves):
             denominator += probs[leaf_idx] * np.exp(-self.eta*loss[leaf_idx,:].sum())
+    
+        return nominator/denominator
 
-        print(f'To update probabilities, the nominator is {nominator} and the denominator is {denominator}')
-        eps = 1e-5
-        if denominator <= eps:
-            denominator = 1
-    
-        probs[arm_idx] = nominator/denominator
-    
+    def update_all_probabilities(self, loss, probs, arm_idx, n_leaves):
+
+        # We update the probability of the current arm first
+        probs[arm_idx] = self.update_arm_probability(loss, probs, arm_idx, n_leaves)
+
+        # We then update the probabilities of all remaining arms
+        for idx in range(n_leaves):
+            if idx == arm_idx:
+                continue
+            probs[idx] = self.update_arm_probability(loss, probs, idx, n_leaves)
+
         return probs
     
     def remove_invalid_partitions(self, input_bounds, probs, h_ind, n_leaves, n_stages, leaf_partitions):
-        prob_thres = 0.1/n_leaves
+        prob_thres = 1e-6
                                                             
         invalid_partitions = np.where(probs < prob_thres)[0]
-        
         if invalid_partitions.shape[0] > 0:
             first_invalid_idx = invalid_partitions[0]
             invalid_partition = leaf_partitions[first_invalid_idx]
@@ -140,8 +144,10 @@ class LaMBO:
                         input_bounds[0][stage_idx] = (input_bounds[0][stage_idx] + input_bounds[1][stage_idx]) / 2.0
                     else:
                         input_bounds[1][stage_idx] = (input_bounds[0][stage_idx] + input_bounds[1][stage_idx]) / 2.0
+
+            probs = self.get_pdf(n_leaves)
     
-        return input_bounds
+        return input_bounds, probs,
     
     def build_datasets(self, acqf, leaf_bounds, trial_number, n_leaves, params):
     
@@ -192,20 +198,18 @@ class LaMBO:
         
         loss = np.zeros([n_leaves, H])
         
-        best_f = -1e9
-        for idx in range(arm_idx):
-            best_f = max(best_f, Y_tree[idx].max().item())
+        best_f = Y_tree[arm_idx].max().item()
             
         total_budget = params['total_budget']
-        cum_cost = 500
+        cum_cost = best_f
         iteration = 0
         
-        while cum_cost < total_budget:
-
-            print(f'\n\n{loss}\n{probs}\n\n')
+        # while cum_cost < total_budget:
+        for it in range(20):
                 
             leaf_bounds = mset.leaves
             input_bounds, arm_idx = self.select_arm(root, leaf_bounds, probs, h, arm_idx, n_leaves)
+            print('Current arm is ', arm_idx)
     
             X, Y, C, C_inv = X_tree[arm_idx], Y_tree[arm_idx], C_tree[arm_idx], C_inv_tree[arm_idx]
     
@@ -220,12 +224,15 @@ class LaMBO:
     
             loss = self.update_loss_estimators(loss, root, probs, arm_idx, sigma, H, acq_value)
     
-            probs = self.update_arm_probability(loss, probs, arm_idx, n_leaves)
-    
-            global_input_bounds = self.remove_invalid_partitions(input_bounds, probs, h_ind, n_leaves, n_stages, mset.leaf_partitions)
+            probs = self.update_all_probabilities(loss, probs, arm_idx, n_leaves)
+
+            print(f'\n\n{loss}\n{probs}\n\n')
+
+            # Probabilities are reinitialized if an arm is invalidated
+            global_input_bounds, probs = self.remove_invalid_partitions(input_bounds, probs, h_ind, n_leaves, n_stages, mset.leaf_partitions)
         
             partitions, last_stage_partition = self.build_partitions(global_input_bounds, h_ind, n_stages)
-        
+            
             mset, root = self.build_tree(partitions, depths, last_stage_partition)
         
             new_y = F(new_x, params).unsqueeze(-1)
