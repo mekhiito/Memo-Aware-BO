@@ -130,7 +130,7 @@ class LaMBO:
 
         return probs
     
-    def remove_invalid_partitions(self, input_bounds, probs, h_ind, n_leaves, n_stages, leaf_partitions):
+    def remove_invalid_partitions(self, input_bounds, probs, loss, h_ind, n_leaves, H, n_stages, leaf_partitions):
         prob_thres = 1e-6
                                                             
         invalid_partitions = np.where(probs < prob_thres)[0]
@@ -146,8 +146,9 @@ class LaMBO:
                         input_bounds[1][stage_idx] = (input_bounds[0][stage_idx] + input_bounds[1][stage_idx]) / 2.0
 
             probs = self.get_pdf(n_leaves)
+            loss = np.zeros([n_leaves, H])
     
-        return input_bounds, probs,
+        return input_bounds, probs, loss
     
     def build_datasets(self, acqf, leaf_bounds, trial_number, n_leaves, params):
     
@@ -229,7 +230,7 @@ class LaMBO:
             print(f'\n\n{loss}\n{probs}\n\n')
 
             # Probabilities are reinitialized if an arm is invalidated
-            global_input_bounds, probs = self.remove_invalid_partitions(input_bounds, probs, h_ind, n_leaves, n_stages, mset.leaf_partitions)
+            global_input_bounds, probs, loss = self.remove_invalid_partitions(input_bounds, probs, loss, h_ind, n_leaves, H, n_stages, mset.leaf_partitions)
         
             partitions, last_stage_partition = self.build_partitions(global_input_bounds, h_ind, n_stages)
             
