@@ -205,8 +205,7 @@ class LaMBO:
         cum_cost = best_f
         iteration = 0
         
-        # while cum_cost < total_budget:
-        for it in range(20):
+        while cum_cost < total_budget:
                 
             leaf_bounds = mset.leaves
             input_bounds, arm_idx = self.select_arm(root, leaf_bounds, probs, h, arm_idx, n_leaves)
