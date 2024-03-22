@@ -6,14 +6,19 @@ from optimize_mem_acqf import optimize_acqf_by_mem
 from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 
-def EEIPU_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def eeipu_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, count=None, consumed_budget=None, params=None):
 
     # Next test: try bounds['x'] again and make sure prefix pooling works with normalized data
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])
+
+    cooldown = (count > 20)
+    count += 1
+    if cooldown == 23:
+        cooldown = 0
     
-    prefix_pool = None
-    if params['use_pref_pool']:
+    prefix_pool = [[]]
+    if params['use_pref_pool'] and not cooldown:
         prefix_pool = generate_prefix_pool(train_x, y, acqf_str, params)
 
     norm_bounds = get_gen_bounds(params['h_ind'], params['normalization_bounds'], bound_type='norm')
@@ -34,4 +39,4 @@ def EEIPU_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
 
     new_x = unnormalize(new_x, bounds['x_cube'])
     
-    return new_x, n_memoised, acq_value
+    return new_x, n_memoised, acq_value, count

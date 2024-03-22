@@ -6,7 +6,7 @@ from optimize_mem_acqf import optimize_acqf_by_mem
 from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 
-def EIPS_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def eips_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, count=None, consumed_budget=None, params=None):
 
     train_x = normalize(X, bounds=bounds['x'])
     train_y = standardize(y, bounds['y'])
@@ -30,4 +30,4 @@ def EIPS_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=No
     new_x = unnormalize(new_x, bounds=bounds['x'])
     
     
-    return new_x, n_memoised, acq_value
+    return new_x, n_memoised, acq_value, count

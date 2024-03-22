@@ -2,7 +2,7 @@ import glob
 import os
 import pandas as pd
 
-csv_file_name = 'icml_custom_ei_first_test.csv'
+csv_file_name = 'icml_3_stage_syn_exp_warmup.csv'
     
 read_dir_name = 'syn_logs_'
 save_dir_name = 'final_csv_logs'

@@ -1,5 +1,5 @@
 import torch
-from botorch.acquisition import ExpectedImprovement
+from botorch.acquisition import UpperConfidenceBound
 from functions.iteration_functions import get_gp_models
 from functions.processing_funcs import normalize, unnormalize, standardize, get_gen_bounds
 from optimize_mem_acqf import optimize_acqf_by_mem
@@ -13,7 +13,7 @@ def lambo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
     
     norm_bounds = get_gen_bounds(params['h_ind'], params['normalization_bounds'], bound_type='norm')
     
-    acqf = ExpectedImprovement(model=gp_model, best_f=train_y.max())
+    acqf = UpperConfidenceBound(model=gp_model, beta=0.2, maximize=True)
     
     new_x, n_memoised, acq_value = optimize_acqf_by_mem(
         acqf=acqf, acqf_str=acqf_str, bounds=norm_bounds, 

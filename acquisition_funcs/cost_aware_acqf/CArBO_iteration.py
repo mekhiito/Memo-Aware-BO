@@ -6,7 +6,7 @@ from optimize_mem_acqf import optimize_acqf_by_mem
 from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 
-def CArBO_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def carbo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, count=None, consumed_budget=None, params=None):
     
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])
@@ -33,4 +33,4 @@ def CArBO_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
     new_x = unnormalize(new_x, bounds=bounds['x_cube'])
     
     
-    return new_x, n_memoised, acq_value
+    return new_x, n_memoised, acq_value, count

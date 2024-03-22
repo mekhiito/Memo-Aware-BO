@@ -27,12 +27,13 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     
     print(f'{acqf} at Trial {trial_number} used an initial cost of {init_cost:0,.2f} out of {total_budget:0,.2f}')
     iteration = 0
+    count = 0
     # print(f'The total budget is {total_budget}')
     # for jj in range(1):
     while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
-        new_x, n_memoised, acq_value = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, acq_value, count = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, count=count, consumed_budget=cum_cost, params=params)
         
         new_y = F(new_x, params).unsqueeze(-1)
         new_c = Cost_F(new_x, params)
@@ -40,11 +41,11 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
         
         new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
 
-        if trial_number == 1:
-            s = "BETTER than" if new_y.item() > best_f else "WORSE than"
-            r = ":)" if new_y.item() > best_f else " :("
-            m = f"Memoized {n_memoised} stages" if (new_y.item() > best_f and acqf == 'EEIPU' and n_memoised > 0) else ''
-            print(f"{acqf} New Y {new_y.item():0,.2f} {s} {best_f:0,.2f} {r} Cost = {new_c.sum().item():0,.2f}. {m}\n\n")
+        # if trial_number == 1:
+        #     s = "BETTER than" if new_y.item() > best_f else "WORSE than"
+        #     r = ":)" if new_y.item() > best_f else " :("
+        #     m = f"Memoized {n_memoised} stages" if (new_y.item() > best_f and acqf == 'EEIPU' and n_memoised > 0) else ''
+        #     print(f"{acqf} New Y {new_y.item():0,.2f} {s} {best_f:0,.2f} {r} Cost = {new_c.sum().item():0,.2f}. {m}\n\n")
 
         if acqf not in MS_ACQFS:
             new_c = new_c.sum(dim=1).unsqueeze(-1)
@@ -68,7 +69,9 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
 
         # best_fs.append(best_f)
 
-        iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
+        eta = (params['total_budget'] - cum_cost) / (params['total_budget'] - params['budget_0'])
+
+        iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost, n_memoised, eta)
 
     
     print(f'{acqf} Trial {trial_number} Final Data has {X.shape} datapoints with best_f {best_f:0,.2f}')

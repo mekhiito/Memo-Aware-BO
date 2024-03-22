@@ -1,14 +1,15 @@
 import wandb
 from argparse import ArgumentParser
 import time
-from copy import deepcopy
-from acquisition_funcs.EEIPU.EEIPU_iteration import EEIPU_iteration
-from acquisition_funcs.EI.EI_iteration import EI_iteration
-from acquisition_funcs.cost_aware_acqf.CArBO_iteration import CArBO_iteration
-from acquisition_funcs.cost_aware_acqf.EIPS_iteration import EIPS_iteration
-from acquisition_funcs.LaMBO.LaMBO import LaMBO
-from acquisition_funcs.MS_BO.MS_BO_iteration import MS_BO_iteration
 import botorch
+from copy import deepcopy
+from acquisition_funcs.EEIPU.EEIPU_iteration import eeipu_iteration
+from acquisition_funcs.EI.EI_iteration import ei_iteration
+from acquisition_funcs.cost_aware_acqf.CArBO_iteration import carbo_iteration
+from acquisition_funcs.cost_aware_acqf.EIPS_iteration import eips_iteration
+from acquisition_funcs.MS_BO.MS_BO_iteration import msbo_iteration
+from acquisition_funcs.LaMBO.LaMBO_iteration import lambo_iteration
+from acquisition_funcs.LaMBO.LaMBO import LaMBO
 from optimizer.optimize_acqf_funcs import optimize_acqf, _optimize_acqf_batch, gen_candidates_scipy, gen_batch_initial_conditions
 from json_reader import read_json
 from single_trial import bo_trial
@@ -19,7 +20,7 @@ import numpy as np
 def arguments():
     
     parser = ArgumentParser()
-    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["branin2", "ackley3", "beale2", "hartmann3"])
+    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["levy2", "hartmann3", "beale2"])
     parser.add_argument("--init-eta", type=float, help="Initial ETA", default=1)
     parser.add_argument("--decay-factor", type=float, help="Decay factor", default=1)
     parser.add_argument("--cost-types", nargs="+", help="Cost types", default=[1,2,3,2])
@@ -64,16 +65,17 @@ if __name__=="__main__":
     
     logs = read_json('logs')
 
-    params['EEIPU_iteration'] = EEIPU_iteration
-    params['EI_iteration'] = EI_iteration
-    params['CArBO_iteration'] = CArBO_iteration
-    params['MS_CArBO_iteration'] = CArBO_iteration
-    params['EIPS_iteration'] = EIPS_iteration
-    params['MS_BO_iteration'] = MS_BO_iteration
+    params['EEIPU_iteration'] = eeipu_iteration
+    params['LaMBO_iteration'] = lambo_iteration
+    params['EI_iteration'] = ei_iteration
+    params['CArBO_iteration'] = carbo_iteration
+    params['MS_CArBO_iteration'] = carbo_iteration
+    params['EIPS_iteration'] = eips_iteration
+    params['MS_BO_iteration'] = msbo_iteration
 
-    params['total_budget'] = 1500
+    params['total_budget'] = 400
     
-    params_per_stage = [2, 3, 2, 3]
+    params_per_stage = [2, 3, 2]
 
     params['h_ind'] = []
     i = 0

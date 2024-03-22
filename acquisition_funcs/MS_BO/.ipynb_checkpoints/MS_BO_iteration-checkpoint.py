@@ -23,7 +23,7 @@ def get_msbo_bounds(bounds, last_stage_idx):
     b = torch.tensor(b, device=DEVICE, dtype=torch.double)
     return b
 
-def MS_BO_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def msbo_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, count=None, consumed_budget=None, params=None):
 
     # GP is only trained on the last stage params
     
@@ -52,4 +52,4 @@ def MS_BO_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
     
     new_x = unnormalize(new_x, bounds=bounds['x_cube'])
     
-    return new_x, n_memoised, acq_value
+    return new_x, n_memoised, acq_value, count

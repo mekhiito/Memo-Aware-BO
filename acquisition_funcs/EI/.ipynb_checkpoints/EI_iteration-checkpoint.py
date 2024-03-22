@@ -4,7 +4,7 @@ from functions.iteration_functions import get_gp_models
 from optimize_mem_acqf import optimize_acqf_by_mem
 import torch
 
-def EI_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, consumed_budget=None, params=None):
+def ei_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None, count=None, consumed_budget=None, params=None):
 
     train_x = normalize(X, bounds=bounds['x_cube'])
     train_y = standardize(y, bounds['y'])
@@ -21,4 +21,4 @@ def EI_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=None
 
     new_x = unnormalize(new_x, bounds=bounds['x_cube'])
     
-    return new_x, n_memoised, acq_value
+    return new_x, n_memoised, acq_value, count

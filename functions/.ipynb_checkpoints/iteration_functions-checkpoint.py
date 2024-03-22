@@ -1,12 +1,11 @@
-from optimize_mem_acqf import optimize_acqf_by_mem
-from functions import normalize, unnormalize, standardize, unstandardize, initialize_GP_model, get_gen_bounds, generate_prefix_pool
+from functions.processing_funcs import standardize, unnormalize, assert_positive_costs, initialize_GP_model
 from botorch import fit_gpytorch_model
-
+import csv
 from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 import torch
 
-def iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost):
+def iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost, n_mem, eta):
     
     log = dict(
         acqf=acqf,
@@ -15,6 +14,8 @@ def iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost):
         best_f=best_f,
         sum_c_x=sum_stages,
         cum_costs=cum_cost,
+        n_mem=n_mem,
+        eta=eta
     )
 
     dir_name = f"syn_logs_"
@@ -26,7 +27,7 @@ def iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost):
             fieldnames = next(reader)
 
     except FileNotFoundError:
-        fieldnames = ['acqf', 'trial', 'iteration', 'best_f', 'sum_c_x', 'cum_costs']
+        fieldnames = ['acqf', 'trial', 'iteration', 'best_f', 'sum_c_x', 'cum_costs', 'n_mem', 'eta']
         with open(csv_file_name, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()

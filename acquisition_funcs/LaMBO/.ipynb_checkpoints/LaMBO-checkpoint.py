@@ -150,25 +150,36 @@ class LaMBO:
     
         return input_bounds, probs, loss
     
-    def build_datasets(self, acqf, leaf_bounds, trial_number, n_leaves, params):
+    # def build_datasets(self, acqf, leaf_bounds, trial_number, n_leaves, arm_idx, params):
     
-        X_tree, Y_tree, C_tree, C_inv_tree = [], [], [], []
-        best_f = -1e9
-        init_cost = 0
-        for leaf in range(n_leaves):
-            x, y, c, c_inv, cost0 = get_initial_data(
-                params['n_init_data'], bounds=leaf_bounds[leaf], 
-                seed=trial_number*10000, acqf=acqf, params=params)
+    #     X_tree, Y_tree, C_tree, C_inv_tree = [], [], [], []
+    #     best_f = -1e9
+    #     init_cost = 0
+    #     for leaf in range(n_leaves):
+    #         x, y, c, c_inv, cost0 = get_initial_data(
+    #             params['n_init_data'], bounds=leaf_bounds[leaf], 
+    #             seed=trial_number*10000, acqf=acqf, params=params)
             
-            X_tree.append(x)
-            Y_tree.append(y)
-            C_tree.append(c)
-            C_inv_tree.append(c_inv)
-            
-            init_cost += cost0
-            best_f = max(best_f, y.max().item())
-            
-        return X_tree, Y_tree, C_tree, C_inv_tree, init_cost, best_f
+    #         X_tree.append(x)
+    #         Y_tree.append(y)
+    #         C_tree.append(c)
+    #         C_inv_tree.append(c_inv)
+
+    #         if leaf == arm_idx:
+    #             init_cost = cost0
+    #             best_f = max(best_f, y.max().item())
+
+    #     return X_tree, Y_tree, C_tree, C_inv_tree, init_cost, best_f
+
+    def build_datasets(self, acqf, bounds, trial_number, n_leaves, arm_idx, params):
+
+        X, Y, C, C_inv, cost0 = get_initial_data(
+            params['n_init_data'], bounds=bounds, 
+            seed=trial_number*10000, acqf=acqf, params=params)
+        
+        best_f = Y.max().item()
+
+        return X, Y, C, C_inv, cost0, best_f
     
     def lambo_trial(self, trial_number, acqf, wandb, params=None):
         
@@ -187,32 +198,30 @@ class LaMBO:
         depths = [ 1 for i in range(n_stages - 1) ]
         
         mset, root = self.build_tree(partitions, depths, last_stage_partition)
-
-        X_tree, Y_tree, C_tree, C_inv_tree, init_cost, best_f = self.build_datasets(acqf, mset.leaves, trial_number, n_leaves, params)
-    
-        H = sum(depths)
-        h = H
         
         arm_idx = random.randint(0, n_leaves)
+
+        X, Y, C, C_inv, init_cost, best_f = self.build_datasets(acqf, global_input_bounds, trial_number, n_leaves, arm_idx, params)
+    
+        H = sum(depths)
+        h = H + 0
         
-        print(f'Initial Data has {X_tree[arm_idx].shape} points for {acqf} Trial {trial_number} with cost {init_cost}')
+        print(f'Initial Data has {X.shape} points for {acqf} Trial {trial_number} with cost {init_cost}')
         
         loss = np.zeros([n_leaves, H])
-        
-        best_f = Y_tree[arm_idx].max().item()
             
         total_budget = params['total_budget']
-        cum_cost = best_f
+        params['budget_0'] = init_cost + 0
+
+        cum_cost = init_cost
         iteration = 0
         
-        # while cum_cost < total_budget:
-        for it in range(20):
+        while cum_cost < total_budget:
                 
             leaf_bounds = mset.leaves
             input_bounds, arm_idx = self.select_arm(root, leaf_bounds, probs, h, arm_idx, n_leaves)
-            print('Current arm is ', arm_idx)
     
-            X, Y, C, C_inv = X_tree[arm_idx], Y_tree[arm_idx], C_tree[arm_idx], C_inv_tree[arm_idx]
+            # X, Y, C, C_inv = X_tree[arm_idx], Y_tree[arm_idx], C_tree[arm_idx], C_inv_tree[arm_idx]
     
             bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
     
@@ -227,10 +236,8 @@ class LaMBO:
     
             probs = self.update_all_probabilities(loss, probs, arm_idx, n_leaves)
 
-            print(f'\n\n{loss}\n{probs}\n\n')
-
             # Probabilities are reinitialized if an arm is invalidated
-            global_input_bounds, probs, loss = self.remove_invalid_partitions(input_bounds, probs, loss, h_ind, n_leaves, H, n_stages, mset.leaf_partitions)
+            global_input_bounds, probs, loss = self.remove_invalid_partitions(global_input_bounds, probs, loss, h_ind, n_leaves, H, n_stages, mset.leaf_partitions)
         
             partitions, last_stage_partition = self.build_partitions(global_input_bounds, h_ind, n_stages)
             
@@ -239,27 +246,30 @@ class LaMBO:
             new_y = F(new_x, params).unsqueeze(-1)
             new_c = Cost_F(new_x, params)
             inv_cost = torch.tensor([1/new_c.sum()]).unsqueeze(-1)
-
-            if new_c.sum() > 50:
-                continue
             
             new_x, new_y, new_c, inv_cost = new_x.to(DEVICE), new_y.to(DEVICE), new_c.to(DEVICE), inv_cost.to(DEVICE)
             
-            X_tree[arm_idx] = torch.cat([X_tree[arm_idx], new_x])
-            Y_tree[arm_idx] = torch.cat([Y_tree[arm_idx], new_y])
-            C_tree[arm_idx] = torch.cat([C_tree[arm_idx], new_c])
-            C_inv_tree[arm_idx] = torch.cat([C_inv_tree[arm_idx], inv_cost])
+            # X_tree[arm_idx] = torch.cat([X_tree[arm_idx], new_x])
+            # Y_tree[arm_idx] = torch.cat([Y_tree[arm_idx], new_y])
+            # C_tree[arm_idx] = torch.cat([C_tree[arm_idx], new_c])
+            
+            X = torch.cat([X, new_x])
+            Y = torch.cat([Y, new_y])
+            C = torch.cat([C, new_c])
+            C_inv = torch.cat([C_inv, inv_cost])
             
             best_f = max(best_f, new_y.item())
     
             sum_stages = new_c.sum().item()        
             cum_cost += sum_stages
-
-            iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost)
+            
+            eta = (params['total_budget'] - cum_cost) / (params['total_budget'] - params['budget_0'])
+    
+            iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost, n_memoised, eta)
             iteration += 1
 
     
-        print(f'{acqf} Trial {trial_number} Final Data has {X_tree[arm_idx].shape} datapoints with best_f {best_f:0,.2f}')
+        print(f'{acqf} Trial {trial_number} Final Data has {X.shape} datapoints with best_f {best_f:0,.2f}')
             
             # wandb.log(log)
         
