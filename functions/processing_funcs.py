@@ -171,7 +171,9 @@ def generate_prefix_pool(X, Y, acqf, params):
     
     data_pool = [(x[i, :], y[i].item()) for i in range(x.shape[0])]
     data_pool.sort(key = lambda d: d[1], reverse=True)
-    prefix_pool = {[]}
+    prefix_pool = set()
+
+    prefix_pool.insert([])
     
     if acqf not in ['EEIPU', 'EIPU-MEMO']:
         return prefix_pool
@@ -189,7 +191,7 @@ def generate_prefix_pool(X, Y, acqf, params):
 
         if i > params['n_prefs']:
             break
-        
+
     prefix_pool = list(prefix_pool)
             
     return prefix_pool
