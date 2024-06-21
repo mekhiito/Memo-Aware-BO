@@ -189,7 +189,8 @@ def generate_prefix_pool(X, Y, acqf, params):
 
         if i > params['n_prefs']:
             break
-
+    
+    print(prefix_pool)
     prefix_pool = list(map(list, set(map(tuple, prefix_pool))))
             
     return prefix_pool
