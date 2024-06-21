@@ -173,7 +173,7 @@ def generate_prefix_pool(X, Y, acqf, params):
     data_pool.sort(key = lambda d: d[1], reverse=True)
     prefix_pool = set()
 
-    prefix_pool.insert([])
+    prefix_pool.add([])
     
     if acqf not in ['EEIPU', 'EIPU-MEMO']:
         return prefix_pool
@@ -187,7 +187,7 @@ def generate_prefix_pool(X, Y, acqf, params):
         for j in range(n_memoizable_stages):
             stage_params = params['h_ind'][j]
             prefix.append(list(param_config[stage_params].cpu().detach().numpy()))
-            prefix_pool.insert(copy.deepcopy(prefix))
+            prefix_pool.add(copy.deepcopy(prefix))
 
         if i > params['n_prefs']:
             break
