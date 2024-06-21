@@ -76,14 +76,15 @@ def bo_trial(trial_number, acqf, bo_iter_function, params=None):
 
         eta = (params['total_budget'] - cum_cost) / (params['total_budget'] - params['budget_0'])
 
+        'acqf', 'trial', 'iteration', 'best_f', 'sum_c_x', 'cum_costs', 'n_mem', 'eta', 'duration', 'n_prefs'
         log_params = {
             'acqf':acqf,
-            'trial_number':trial_number,
+            'trial':trial_number,
             'iteration':iteration,
             'best_f':best_f,
-            'sum_stages':sum_stages,
+            'sum_c_x':sum_stages,
             'cum_cost':cum_cost,
-            'n_memoised':n_memoised,
+            'n_mem':n_memoised,
             'eta':eta,
             'duration':iter_duration,
             'n_prefs': params['n_prefs'],
