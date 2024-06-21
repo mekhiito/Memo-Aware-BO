@@ -3,11 +3,12 @@ from functions.processing_funcs import get_gen_bounds, get_dataset_bounds, get_i
 from functions.synthetic_functions import F, Cost_F
 from functions.iteration_functions import iteration_logs
 import torch
+from time import time
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 MS_ACQFS = ['EEIPU', 'LaMBO', 'MS_CArBO', 'MS_BO']
 
-def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
+def bo_trial(trial_number, acqf, bo_iter_function, params=None):
 
     trial_logs = read_json('logs')
     bound_list = read_json('bounds')
@@ -28,13 +29,17 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
     print(f'{acqf} at Trial {trial_number} used an initial cost of {init_cost:0,.2f} out of {total_budget:0,.2f}')
     iteration = 0
     count = 0
-    # print(f'The total budget is {total_budget}')
-    # for jj in range(1):
+
     while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
+
+        st = time()
         new_x, n_memoised, acq_value, count = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, count=count, consumed_budget=cum_cost, params=params)
-        
+        en = time()
+
+        iter_duration = en - st
+
         new_y = F(new_x, params).unsqueeze(-1)
         new_c = Cost_F(new_x, params)
         inv_cost = torch.tensor([1/new_c.sum()]).unsqueeze(-1)
@@ -71,7 +76,20 @@ def bo_trial(trial_number, acqf, bo_iter_function, wandb, params=None):
 
         eta = (params['total_budget'] - cum_cost) / (params['total_budget'] - params['budget_0'])
 
-        iteration_logs(acqf, trial_number, iteration, best_f, sum_stages, cum_cost, n_memoised, eta)
+        log_params = {
+            'acqf':acqf,
+            'trial_number':trial_number,
+            'iteration':iteration,
+            'best_f':best_f,
+            'sum_stages':sum_stages,
+            'cum_cost':cum_cost,
+            'n_memoised':n_memoised,
+            'eta':eta,
+            'duration':iter_duration,
+            'n_prefs': params['n_prefs'],
+        }
+
+        iteration_logs(log_params)
 
     
     print(f'{acqf} Trial {trial_number} Final Data has {X.shape} datapoints with best_f {best_f:0,.2f}')

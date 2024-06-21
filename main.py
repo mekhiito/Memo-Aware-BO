@@ -1,4 +1,3 @@
-import wandb
 from argparse import ArgumentParser
 import time
 import botorch
@@ -73,7 +72,7 @@ if __name__=="__main__":
     params['EIPS_iteration'] = eips_iteration
     params['MS_BO_iteration'] = msbo_iteration
 
-    params['total_budget'] = 400
+    params['total_budget'] = 100
     
     params_per_stage = [2, 3, 2]
 
@@ -91,7 +90,7 @@ if __name__=="__main__":
     if args.acqf == 'LaMBO':
         params['lambo_eta'] = 1
         lambo = LaMBO(params['lambo_eta'])
-        lambo.lambo_trial(trial_number=trial, acqf=args.acqf, wandb=wandb, params=params)
+        lambo.lambo_trial(trial_number=trial, acqf=args.acqf, params=params)
     else:
-        bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], wandb=wandb, params=params)
+        bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
     
