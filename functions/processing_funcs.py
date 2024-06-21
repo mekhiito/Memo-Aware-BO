@@ -185,13 +185,11 @@ def generate_prefix_pool(X, Y, acqf, params):
         for j in range(n_memoizable_stages):
             stage_params = params['h_ind'][j]
             prefix.append(list(param_config[stage_params].cpu().detach().numpy()))
-            prefix_pool.append(copy.deepcopy(prefix))
+            if prefix not in prefix_pool:
+                prefix_pool.append(copy.deepcopy(prefix))
 
         if i > params['n_prefs']:
             break
-    
-    print(prefix_pool)
-    prefix_pool = list(map(list, set(map(tuple, prefix_pool))))
             
     return prefix_pool
 
