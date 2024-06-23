@@ -74,7 +74,7 @@ if __name__=="__main__":
 
     params['total_budget'] = 400
     
-    params_per_stage = [2, 3, 2]
+    params_per_stage = [3, 4, 2, 6, 1]
 
     params['h_ind'] = []
     i = 0
