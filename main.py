@@ -19,7 +19,7 @@ import numpy as np
 def arguments():
     
     parser = ArgumentParser()
-    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["levy2", "hartmann3", "beale2"])
+    parser.add_argument("--obj-funcs", nargs="+", help="Objective functions", default=["beale2", "hartmann3", "branin2"])
     parser.add_argument("--init-eta", type=float, help="Initial ETA", default=1)
     parser.add_argument("--decay-factor", type=float, help="Decay factor", default=1)
     parser.add_argument("--cost-types", nargs="+", help="Cost types", default=[1,2,3,2])
@@ -74,7 +74,7 @@ if __name__=="__main__":
 
     params['total_budget'] = 400
     
-    params_per_stage = [3, 4, 2, 6, 1]
+    params_per_stage = [2, 3, 2]
 
     params['h_ind'] = []
     i = 0
@@ -94,3 +94,4 @@ if __name__=="__main__":
     else:
         bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
     
+

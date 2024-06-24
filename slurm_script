@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --job-name=vldb_exp             # Job name
+#SBATCH --output=outputs/output.%A_%a.txt   # Standard output and error log
+#SBATCH --nodes=1                   # Run all processes on a single node    
+#SBATCH --ntasks=1                  # Run on a single CPU
+#SBATCH --mem=40G                   # Total RAM to be used
+#SBATCH --cpus-per-task=16          # Number of CPU cores
+#SBATCH --gres=gpu:2                # Number of GPUs (per node)
+#SBATCH -p it-hpc                      # Use the it-dept partition
+#SBATCH --time=12:00:00             # Specify the time needed for your experiment
+
+hostname
+bash run.sh
