@@ -1,0 +1,21 @@
+gpu40-1
+EEIPU at Trial 5 used an initial cost of 46.71 out of 400.00
+EEIPU Trial 5 Final Data has torch.Size([99, 7]) datapoints with best_f -2.54
+EEIPU at Trial 7 used an initial cost of 38.03 out of 400.00
+EEIPU Trial 7 Final Data has torch.Size([93, 7]) datapoints with best_f -1.04
+EEIPU at Trial 6 used an initial cost of 49.43 out of 400.00
+EEIPU Trial 6 Final Data has torch.Size([82, 7]) datapoints with best_f -0.89
+EEIPU at Trial 4 used an initial cost of 42.30 out of 400.00
+EEIPU Trial 4 Final Data has torch.Size([97, 7]) datapoints with best_f 0.72
+EEIPU at Trial 8 used an initial cost of 37.77 out of 400.00
+EEIPU Trial 8 Final Data has torch.Size([107, 7]) datapoints with best_f -2.56
+EEIPU at Trial 9 used an initial cost of 42.89 out of 400.00
+EEIPU Trial 9 Final Data has torch.Size([97, 7]) datapoints with best_f 0.50
+EEIPU at Trial 1 used an initial cost of 48.15 out of 400.00
+EEIPU Trial 1 Final Data has torch.Size([95, 7]) datapoints with best_f -3.90
+EEIPU at Trial 3 used an initial cost of 44.56 out of 400.00
+EEIPU Trial 3 Final Data has torch.Size([109, 7]) datapoints with best_f -5.12
+EEIPU at Trial 2 used an initial cost of 45.37 out of 400.00
+EEIPU Trial 2 Final Data has torch.Size([92, 7]) datapoints with best_f -3.04
+EEIPU at Trial 10 used an initial cost of 38.68 out of 400.00
+EEIPU Trial 10 Final Data has torch.Size([117, 7]) datapoints with best_f -3.15
