@@ -177,6 +177,9 @@ def generate_prefix_pool(X, Y, acqf, params):
         return prefix_pool
         
     for i, (param_config, obj) in enumerate(data_pool):
+
+        if i >= params['n_prefs']:
+            break
             
         prefix = []
         n_memoizable_stages = len(params['h_ind']) - 1
@@ -188,8 +191,5 @@ def generate_prefix_pool(X, Y, acqf, params):
             if prefix not in prefix_pool:
                 prefix_pool.append(copy.deepcopy(prefix))
 
-        if i > params['n_prefs']:
-            break
-            
     return prefix_pool
 
