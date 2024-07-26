@@ -17,10 +17,11 @@ def eeipu_iteration(X, y, c, c_inv, bounds=None, acqf_str='', decay=None, iter=N
     if cooldown == 23:
         cooldown = 0
     
-    prefix_pool = [[]]
-    if params['use_pref_pool'] and not cooldown:
-        prefix_pool = generate_prefix_pool(train_x, y, acqf_str, params)
-
+    prefix_pool = generate_prefix_pool(train_x, y, acqf_str, params)
+    
+    if iter < 5:
+        print(len(prefix_pool))
+    
     norm_bounds = get_gen_bounds(params['h_ind'], params['normalization_bounds'], bound_type='norm')
     
     mll, gp_model = get_gp_models(train_x, train_y, iter, params=params)
