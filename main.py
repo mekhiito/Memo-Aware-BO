@@ -72,7 +72,7 @@ if __name__=="__main__":
     params['EIPS_iteration'] = eips_iteration
     params['MS_BO_iteration'] = msbo_iteration
 
-    params['total_budget'] = 400
+    params['total_budget'] = 200
     
     params_per_stage = [2, 3, 2]
 
