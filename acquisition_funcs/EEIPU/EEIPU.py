@@ -206,4 +206,4 @@ class EEIPU(AnalyticAcquisitionFunction):
      
         inv_cost =  self.compute_expected_inverse_cost(X, delta=delta)
 
-        return ei_x * (inv_cost**cost_cool)
+        return ei_x * (inv_cost**self.eta)

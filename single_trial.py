@@ -29,14 +29,15 @@ def bo_trial(trial_number, acqf, bo_iter_function, params=None):
     print(f'{acqf} at Trial {trial_number} used an initial cost of {init_cost:0,.2f} out of {total_budget:0,.2f}')
     iteration = 0
     count = 0
-
+    init_eta, cool = 1, 0.9
     while cum_cost < total_budget:
         
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
 
         st = time()
-        new_x, n_memoised, acq_value, count = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, iter=iteration, count=count, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, acq_value, count = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=init_eta iter=iteration, count=count, consumed_budget=cum_cost, params=params)
         en = time()
+        init_eta *= cool
 
         iter_duration = en - st
 
