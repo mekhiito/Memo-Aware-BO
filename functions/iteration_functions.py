@@ -7,7 +7,7 @@ import torch
 
 def iteration_logs(log):
 
-    dir_name = f"syn_logs_"
+    dir_name = f"syn_logs_eta_const"
     
     csv_file_name = f"{dir_name}/{log['acqf']}_trial_{log['trial']}.csv"
 
