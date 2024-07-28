@@ -5,9 +5,16 @@ from botorch.sampling import SobolQMCNormalSampler
 from botorch.acquisition.objective import IdentityMCObjective
 import torch
 
-def iteration_logs(log):
+def iteration_logs(log, params):
 
-    dir_name = f"syn_logs_first_pref"
+    if params['eps'] != 0.1:
+        dir_name = f"syn_logs_{str(int(params['eps']*10))}_eps"
+    elif params['mode'] != 'all':
+        dir_name = f"syn_logs_{params['mode']}_pref"
+    elif params['cool'] != 'asis':
+        dir_name = f"syn_logs_{params['cool']}_eta"
+    else:
+        dir_name = f"syn_logs_OG"
     
     csv_file_name = f"{dir_name}/{log['acqf']}_trial_{log['trial']}.csv"
 

@@ -180,13 +180,9 @@ def generate_prefix_pool(X, Y, acqf, params):
 
         if i >= params['n_prefs']:
             break
-            
+        
         prefix = []
-        n_memoizable_stages = len(params['h_ind']) - 1
-        mode='first' # 'first', 'mid', 'all'
-        prefix = []
-        n_memoizable_stages = len(params['h_ind']) - 1 if mode == 'all' else (((len(params['h_ind'])/2) + 1) if mode == 'mid' else 1)
-        n_memoizable_stages = 1
+        n_memoizable_stages = len(params['h_ind']) - 1 if params['mode'] == 'all' else (((len(params['h_ind'])/2) + 1) if params['mode'] == 'mid' else 1)
         # mem_stages = random.randint(1, n_memoizable_stages)
         for j in range(n_memoizable_stages):
             stage_params = params['h_ind'][j]

@@ -45,5 +45,7 @@
     "use_pref_pool": 1,
     "verbose": 1,
     "rand_seed": 42,
+    "cool": "asis",
+    "mode":"all",
     "n_prefs": 5
 }
