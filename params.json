@@ -16,7 +16,7 @@
     "n_iters": 40,
     "alpha": 9,
     "norm_eps": 1,
-    "epsilon": 0,
+    "epsilon": 0.1,
     "batch_size": 1,
     "normalization_bounds": [
         0,

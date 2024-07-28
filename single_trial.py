@@ -35,7 +35,7 @@ def bo_trial(trial_number, acqf, bo_iter_function, params=None):
         bounds = get_dataset_bounds(X, Y, C, C_inv, input_bounds)
 
         st = time()
-        new_x, n_memoised, acq_value, count = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=init_eta iter=iteration, count=count, consumed_budget=cum_cost, params=params)
+        new_x, n_memoised, acq_value, count = bo_iter_function(X, Y, C, C_inv, bounds=bounds, acqf_str=acqf, decay=init_eta, iter=iteration, count=count, consumed_budget=cum_cost, params=params)
         en = time()
         init_eta *= cool
 
