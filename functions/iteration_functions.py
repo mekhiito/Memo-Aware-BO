@@ -7,7 +7,7 @@ import torch
 
 def iteration_logs(log, params):
 
-    if params['eps'] != 0.1:
+    if params['epsilon'] != 0.1:
         dir_name = f"syn_logs_{str(int(params['eps']*10))}_eps"
     elif params['mode'] != 'all':
         dir_name = f"syn_logs_{params['mode']}_pref"

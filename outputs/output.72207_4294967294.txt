@@ -1,0 +1,101 @@
+gpu40-5
+EEIPU at Trial 1 used an initial cost of 48.15 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 9 used an initial cost of 42.89 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 10 used an initial cost of 38.68 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 6 used an initial cost of 49.43 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 7 used an initial cost of 38.03 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 5 used an initial cost of 46.71 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 3 used an initial cost of 44.56 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 2 used an initial cost of 45.37 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 4 used an initial cost of 42.30 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'
+EEIPU at Trial 8 used an initial cost of 37.77 out of 200.00
+1
+Traceback (most recent call last):
+  File "main.py", line 95, in <module>
+    bo_trial(trial_number=trial, acqf=args.acqf, bo_iter_function=params[f'{args.acqf}_iteration'], params=params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/single_trial.py", line 93, in bo_trial
+    iteration_logs(log_params, params)
+  File "/fsx/homes/Abdelmajid.Essofi@mbzuai.ac.ae/Memo-Aware-BO/functions/iteration_functions.py", line 10, in iteration_logs
+    if params['eps'] != 0.1:
+KeyError: 'eps'

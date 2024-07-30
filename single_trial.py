@@ -90,7 +90,7 @@ def bo_trial(trial_number, acqf, bo_iter_function, params=None):
             'n_prefs': params['n_prefs'],
         }
 
-        iteration_logs(log_params)
+        iteration_logs(log_params, params)
 
     
     print(f'{acqf} Trial {trial_number} Final Data has {X.shape} datapoints with best_f {best_f:0,.2f}')
